@@ -1,13 +1,16 @@
 /*
   Sonde Temperature et Humidite
-  Plus
-  Thermometre qui va dans l'eau
+ Plus
+ Thermometre qui va dans l'eau
  */
- 
+
 
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <dht.h>
+#include <XMNData.h>
+#include <aJSON.h>
+#include <MemoryFree.h>
 
 //Pour temp et humidite
 dht DHT;
@@ -22,7 +25,12 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
 
+//Mes variables globales
 boolean isComToPi = true;
+float temperatureEau;
+unsigned int iteration=0;
+XMNData *xmnData;
+
 
 void setup(void)
 {
@@ -31,39 +39,59 @@ void setup(void)
   Serial.println("Dallas Temperature IC Control Library Demo");
   Serial.println("Humidity and temperature\n\n");
   delay(1000);//Wait rest of 1000ms recommended delay before
-
-
   // Start up the library
   sensors.begin();
 }
 
 void loop(void)
 { 
-  // call sensors.requestTemperatures() to issue a global temperature 
-  // request to all devices on the bus
-  Serial.print("Requesting temperatures...");
-  sensors.requestTemperatures(); // Send the command to get temperatures
-  Serial.println("DONE");
-  
-  Serial.print("Temperature for the device 1 (index 0) is: ");
-  Serial.println(sensors.getTempCByIndex(0));  
-    //This is the "heart" of the program.
-  DHT.read11(dht_dpin);
+  //Si on arrive a 64.000 iteration, on repart a 1
+  iteration++;
+  if (iteration == 64000) {
+    iteration = 1;
+  }
 
-  float temperature = DHT.temperature;
-  Serial.print("Current humidity = ");
-  Serial.print(DHT.humidity);
-  Serial.print("%  ");
-  Serial.print("temperature = ");
-  Serial.print(temperature); 
-  Serial.println("C  ");
+  Serial.print("freeMemory()=");
+  Serial.println(freeMemory());
+    
+  Serial.println(iteration);
+  xmnData = new XMNData(iteration);
+  setCapteurTemperatureSondeEau();  
+  setCapteurTemperatureHumidite();  
+  Serial.print("Flux JSON=");
+  char* buf = xmnData->getJSON();
+  Serial.println(buf);
+  free(buf);
+  delete xmnData;
   delay(5000);//Don't try to access too frequently... in theory
   //should be once per two seconds, fastest,
   //but seems to work after 0.8 second.
 }
 
-
-void log(String text)
+void setCapteurTemperatureSondeEau()
 {
+  // call sensors.requestTemperatures() to issue a global temperature 
+  // request to all devices on the bus
+  Serial.print("Requesting temperatures...");
+  sensors.requestTemperatures(); // Send the command to get temperatures
+  Serial.println("DONE");
+  //Serial.print("Temperature for the device 1 (index 0) is: ");
+  float value = sensors.getTempCByIndex(0);
+  Serial.println(value);
+  xmnData->setTemperatureEau(value);
 
 }
+
+void setCapteurTemperatureHumidite()
+{
+  //This is the "heart" of the program.
+  DHT.read11(dht_dpin);
+  Serial.print("DHT.temperature");
+  Serial.println(DHT.temperature);  
+  xmnData->setTemperature(DHT.temperature);
+  xmnData->setHumidity(DHT.humidity);
+
+
+}
+
+
