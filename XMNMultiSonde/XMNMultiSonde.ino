@@ -27,7 +27,6 @@ DallasTemperature sensors(&oneWire);
 
 //Mes variables globales
 boolean isComToPi = true;
-float temperatureEau;
 unsigned int iteration=0;
 XMNData *xmnData;
 
@@ -51,19 +50,19 @@ void loop(void)
     iteration = 1;
   }
 
-  Serial.print("freeMemory()=");
-  Serial.println(freeMemory());
-    
+  //Serial.print("freeMemory()=");
+  //Serial.println(freeMemory());
+
   Serial.println(iteration);
   xmnData = new XMNData(iteration);
   setCapteurTemperatureSondeEau();  
   setCapteurTemperatureHumidite();  
-  Serial.print("Flux JSON=");
+  Serial.println("Flux JSON=");
   char* buf = xmnData->getJSON();
   Serial.println(buf);
   free(buf);
   delete xmnData;
-  delay(5000);//Don't try to access too frequently... in theory
+  delay(60000);//Don't try to access too frequently... in theory
   //should be once per two seconds, fastest,
   //but seems to work after 0.8 second.
 }
@@ -72,14 +71,13 @@ void setCapteurTemperatureSondeEau()
 {
   // call sensors.requestTemperatures() to issue a global temperature 
   // request to all devices on the bus
-  Serial.print("Requesting temperatures...");
+  //Serial.print("Requesting temperatures...");
   sensors.requestTemperatures(); // Send the command to get temperatures
-  Serial.println("DONE");
+  //Serial.println("DONE");
   //Serial.print("Temperature for the device 1 (index 0) is: ");
   float value = sensors.getTempCByIndex(0);
   Serial.println(value);
   xmnData->setTemperatureEau(value);
-
 }
 
 void setCapteurTemperatureHumidite()
@@ -93,5 +91,6 @@ void setCapteurTemperatureHumidite()
 
 
 }
+
 
 
