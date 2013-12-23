@@ -5,17 +5,25 @@ class XMNData {
 	public:
 		XMNData(unsigned int iteration);
 		
-		void setTemperatureEau(float temperatureEau);
-		void setTemperature(double temperature);
-		void setHumidity(double humidity);
+		void setSonMin(int sonMin);
+		void setSonMax(int sonMax);
+		void setSonMoy(int sonMoy);
+		void setGaz(int gaz);
+		void setLumiere(int lumiere);
+		void setTemperature(float temperature);
+		void setHumidity(float humidity);
 		
 		char* getJSON();
 		
 	private:
 		unsigned int _iteration;
-		float _temperatureEau;
-		double _temperature;
-		double _humidity;
+		int _sonMin;
+		int _sonMax;
+		int _sonMoy;
+		int _gaz;
+		int _lumiere;
+		float _temperature;
+		float _humidity;
 };
 
 

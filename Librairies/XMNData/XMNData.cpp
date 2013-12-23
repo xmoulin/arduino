@@ -5,19 +5,46 @@
 //Constructeur
 XMNData::XMNData(unsigned int iteration) {
 	_iteration = iteration;
+	_sonMin=0;
+	_sonMax=0;
+	_sonMoy=0;
+	_gaz=0;
+	_lumiere=0;
+	_temperature=0;
+	_humidity=0;
 }
 
-/* setTemperatureEau */
-void XMNData::setTemperatureEau(float temperatureEau) {
-	_temperatureEau = temperatureEau;
+/* sonMin */
+void XMNData::setSonMin(int sonMin) {
+	_sonMin = sonMin;
+}
+
+/* sonMax */
+void XMNData::setSonMax(int sonMax) {
+	_sonMax = sonMax;
+}
+
+/* sonMoy */
+void XMNData::setSonMoy(int sonMoy) {
+	_sonMoy = sonMoy;
+}
+
+/* sonGaz */
+void XMNData::setGaz(int gaz) {
+	_gaz = gaz;
+}
+
+/* lumiere */
+void XMNData::setLumiere(int lumiere) {
+	_lumiere = lumiere;
 }
 
 /* setTemperature */
-void XMNData::setTemperature(double temperature) {
+void XMNData::setTemperature(float temperature) {
 	_temperature = temperature;
 }
 /* setHumidity */
-void XMNData::setHumidity(double humidity) {
+void XMNData::setHumidity(float humidity) {
 	_humidity = humidity;
 }
 
@@ -42,7 +69,11 @@ char* XMNData::getJSON() {
  	
  	root=aJson.createObject(); 
  	aJson.addNumberToObject(root,"iteration", (int)_iteration);
- 	aJson.addNumberToObject(root,"temperatureEau",_temperatureEau);
+ 	aJson.addNumberToObject(root,"sonMin",_sonMin);
+ 	aJson.addNumberToObject(root,"sonMax",_sonMax);
+ 	aJson.addNumberToObject(root,"sonMoy",_sonMoy);
+ 	aJson.addNumberToObject(root,"gaz",_gaz);
+ 	aJson.addNumberToObject(root,"lumiere",_lumiere);
  	aJson.addNumberToObject(root,"temperature",_temperature);
  	aJson.addNumberToObject(root,"humidity",_humidity);
 	char* buf = aJson.print(root);
