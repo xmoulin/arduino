@@ -5,6 +5,7 @@
 #include <XMNData.h>
 #include <aJSON.h>
 #include <MemoryFree.h>
+#include <Timer.h>
 //Utile pour lumiere
 //#include <math.h>
 
@@ -18,10 +19,21 @@ dht DHT;
 #define SON_PIN 2
 
 //Mes variables globales
-boolean isComToPi = true;
+const boolean isComToPi = true;
+const int DELAY = 50;
+//Nombre d'iteration globale
 unsigned int iteration=0;
+//Nombre d'iteration avant prise de lumiere/temperature/humidité
+unsigned int iterationSon=0;
 XMNData *xmnData;
-int soundValue=0;
+int soundInstantane=0;
+//Constante MAX du son - on initialise le soundMin au max afin de pouvoir le recalibrer simplement
+const int SOUND_MAX = 80;
+int sonMin=SOUND_MAX;
+int sonMax=0;
+int sonMoy=0;
+//Un timer
+Timer t;
 
 void setup(void)
 {
@@ -32,10 +44,23 @@ void setup(void)
   Serial.println(DHT_LIB_VERSION);
   Serial.println();
   delay(1000);//Wait rest of 1000ms recommended delay before
+  //Appel la methode setSon tous les 2 secondes.
+  t.every(100, getSon);
+  t.every(5000, captureEtEnvoi);
 }
 
 void loop(void)
 { 
+  delay(DELAY);//Don't try to access too frequently... in theory
+  //should be once per two seconds, fastest,
+  //but seems to work after 0.8 second.
+   t.update();
+}
+
+
+//Capture, aggrege et envoi
+void captureEtEnvoi()
+{
   //Si on arrive a 64.000 iteration, on repart a 1
   iteration++;
   if (iteration == 64000) {
@@ -47,26 +72,42 @@ void loop(void)
   Serial.print("Iteration ");
   Serial.println(iteration);
   xmnData = new XMNData(iteration);
-  setSon();  
   setCapteurLumiere();  
-  setCapteurTemperatureHumidite();  
+  setCapteurTemperatureHumidite();
+  setSon();  
   Serial.println("Flux JSON=");
   char* buf = xmnData->getJSON();
   Serial.println(buf);
   free(buf);
   delete xmnData;
-  delay(5000);//Don't try to access too frequently... in theory
-  //should be once per two seconds, fastest,
-  //but seems to work after 0.8 second.
+}
+
+//Entre 0 et 80db sur l'IHM
+void getSon()
+{
+  iterationSon++;
+  int sonInstantane = analogRead(SON_PIN);
+  Serial.print("Son=");
+  Serial.println(sonInstantane);
+  //Positionne le max
+  if (sonInstantane >= sonMax) sonMax = sonInstantane;
+  //Positionne le min
+  if (sonInstantane <= sonMin) sonMin = sonInstantane;
+  //Positionne le moy : par addition, une division sera faite au moment de calculer la moyenne en se bassant sur la variable iterationSon
+  sonMoy = sonMoy + sonInstantane;
 }
 
 //Entre 0 et 80db sur l'IHM
 void setSon()
 {
-  soundValue = analogRead(SON_PIN);
-  Serial.print("Son=");
-  Serial.println(soundValue);
-  xmnData->setSonMoy(soundValue);
+  xmnData->setSonMin(sonMin);  
+  xmnData->setSonMoy(sonMoy/iterationSon);
+  xmnData->setSonMax(sonMax);
+  //Reinit des valueurs min et max sauvegardée
+  sonMin=SOUND_MAX;
+  sonMax=0;
+  sonMoy=0;
+  iterationSon=0;
 }
 
 //Entre 0 et 200Lux sur l'IHM
