@@ -26,12 +26,12 @@ unsigned int iteration=0;
 //Nombre d'iteration avant prise de lumiere/temperature/humidité
 unsigned int iterationSon=0;
 XMNData *xmnData;
-int soundInstantane=0;
+unsigned int soundInstantane=0;
 //Constante MAX du son - on initialise le soundMin au max afin de pouvoir le recalibrer simplement
 const int SOUND_MAX = 80;
-int sonMin=SOUND_MAX;
-int sonMax=0;
-int sonMoy=0;
+unsigned int sonMin=SOUND_MAX;
+unsigned int sonMax=0;
+unsigned int sonMoy=0;
 //Un timer
 Timer t;
 
