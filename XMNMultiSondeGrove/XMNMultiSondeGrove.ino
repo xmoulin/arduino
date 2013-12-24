@@ -6,6 +6,8 @@
 #include <aJSON.h>
 #include <MemoryFree.h>
 #include <Timer.h>
+#include "AirQuality.h"
+#include "Arduino.h"
 //Utile pour lumiere
 //#include <math.h>
 
@@ -17,6 +19,10 @@ dht DHT;
 #define LUMIERE_PIN 1
 // Son - Grove Sound Sensor
 #define SON_PIN 2
+
+//AirQuality
+AirQuality airqualitysensor;
+
 
 //Mes variables globales
 const boolean isComToPi = true;
@@ -42,7 +48,9 @@ void setup(void)
   Serial.println("Initialisation des sondes");
   Serial.print("Humidity and temperature DHT22 - LIBRARY VERSION: ");
   Serial.println(DHT_LIB_VERSION);
-  Serial.println();
+  Serial.println("Air Quality - Init");
+  airqualitysensor.init(14);
+  Serial.println("delay puis init timer");
   delay(1000);//Wait rest of 1000ms recommended delay before
   //Appel la methode setSon tous les 2 secondes.
   t.every(100, getSon);
@@ -75,6 +83,7 @@ void captureEtEnvoi()
   setCapteurLumiere();  
   setCapteurTemperatureHumidite();
   setSon();  
+  setGaz();
   Serial.println("Flux JSON=");
   char* buf = xmnData->getJSON();
   Serial.println(buf);
@@ -87,8 +96,8 @@ void getSon()
 {
   iterationSon++;
   int sonInstantane = analogRead(SON_PIN);
-  Serial.print("Son=");
-  Serial.println(sonInstantane);
+  //Serial.print("Son=");
+  //Serial.println(sonInstantane);
   //Positionne le max
   if (sonInstantane >= sonMax) sonMax = sonInstantane;
   //Positionne le min
@@ -152,10 +161,39 @@ void setCapteurTemperatureHumidite()
   //On sauvegarde les valeurs
   xmnData->setTemperature(DHT.temperature);
   xmnData->setHumidity(DHT.humidity);
-
-
 }
 
-
+//Entre 0 et 4 sur l'IHM
+void setGaz()
+{
+  int current_quality=airqualitysensor.slope();
+  if (current_quality >= 0)// if a valid data returned.
+  {
+    if (current_quality==0)
+      Serial.println("High pollution! Force signal active");
+    else if (current_quality==1)
+      Serial.println("High pollution!");
+    else if (current_quality==2)
+      Serial.println("Low pollution!");
+    else if (current_quality ==3)
+      Serial.println("Fresh air");
+  }
+  xmnData->setGaz(current_quality);
+}
+ISR(TIMER2_OVF_vect)
+{
+  if(airqualitysensor.counter==122)//set 2 seconds as a detected duty
+  {
+    airqualitysensor.last_vol=airqualitysensor.first_vol;
+    airqualitysensor.first_vol=analogRead(A0);
+    airqualitysensor.counter=0;
+    airqualitysensor.timer_index=1;
+    PORTB=PORTB^0x20;
+  }
+  else
+  {
+    airqualitysensor.counter++;
+  }
+}
 
 

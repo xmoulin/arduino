@@ -89,16 +89,16 @@ int AirQuality::slope(void)
 	{
     	if(first_vol-last_vol>400||first_vol>700)
         {
-            Serial.println("Haute pollution! DANGER!!!");		
+            //Serial.println("Haute pollution! DANGER!!!");		
             timer_index=0;	
             avgVoltage();	
             return 0;	
         }
     	else if((first_vol-last_vol>400&&first_vol<700)||first_vol-vol_standard>150)
         {	
-            Serial.print("sensor_value:");		
+            /*Serial.print("sensor_value:");		
             Serial.print(first_vol);      		
-            Serial.println("\t Haute pollution!");		
+            Serial.println("\t Haute pollution!");*/
             timer_index=0;	
             avgVoltage();
             return 1;
@@ -107,9 +107,9 @@ int AirQuality::slope(void)
     	else if((first_vol-last_vol>200&&first_vol<700)||first_vol-vol_standard>50)
         {
             //Serial.println(first_vol-last_vol);
-            Serial.print("sensor_value:");
+            /*Serial.print("sensor_value:");
             Serial.print(first_vol);      		
-            Serial.println("\t Basse pollution!");		
+            Serial.println("\t Basse pollution!");*/
             timer_index=0;
             avgVoltage();
             return 2;	
@@ -117,9 +117,9 @@ int AirQuality::slope(void)
     	else
         {
             avgVoltage();	
-            Serial.print("sensor_value:");
+            /*Serial.print("sensor_value:");
             Serial.print(first_vol);
-            Serial.println("\t Air Frais");
+            Serial.println("\t Air Frais");*/
             timer_index=0;
             return 3;
         }
