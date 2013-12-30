@@ -6,8 +6,8 @@
 #include <aJSON.h>
 #include <MemoryFree.h>
 #include <Timer.h>
-#include "AirQuality.h"
-#include "Arduino.h"
+#include <AirQuality.h>
+#include <Arduino.h>
 //Utile pour lumiere
 //#include <math.h>
 
@@ -23,7 +23,6 @@ dht DHT;
 //AirQuality
 AirQuality airqualitysensor;
 
-
 //Mes variables globales
 const boolean isComToPi = true;
 const int DELAY = 50;
@@ -38,6 +37,9 @@ const int SOUND_MAX = 80;
 unsigned int sonMin=SOUND_MAX;
 unsigned int sonMax=0;
 unsigned int sonMoy=0;
+// sauvegarde des derniere valeur comme ça si incoherence on redonne les dernieres captures
+float derniereMesureTemperature = 21;
+float derniereMesureHumidity = 60;
 //Un timer
 Timer t;
 
@@ -153,14 +155,25 @@ void setCapteurTemperatureHumidite()
 		break;
   }
   // DISPLAY DATA
+  float temperature = DHT.temperature;
+  float humidity = DHT.humidity;
   Serial.print("DHT.humidity:");
-  Serial.print(DHT.humidity, 1);
+  Serial.print(temperature, 1);
   Serial.print(",\t");
   Serial.print("DHT.temperature:");
-  Serial.println(DHT.temperature, 1);
+  Serial.println(humidity, 1);
+  //Patch car certaine mesures etaient a -1000
+  if (temperature > 60) temperature = derniereMesureTemperature;
+  else if (temperature < -15) temperature = derniereMesureTemperature;
+  else derniereMesureTemperature = temperature;
+  
+  if (humidity > 100) humidity = derniereMesureHumidity;
+  else if (humidity < 0) humidity = derniereMesureHumidity;
+  else derniereMesureHumidity = humidity;
+
   //On sauvegarde les valeurs
-  xmnData->setTemperature(DHT.temperature);
-  xmnData->setHumidity(DHT.humidity);
+  xmnData->setTemperature(temperature);
+  xmnData->setHumidity(humidity);
 }
 
 //Entre 0 et 4 sur l'IHM
