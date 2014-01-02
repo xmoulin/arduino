@@ -12,9 +12,17 @@ class XMNData {
 		void setLumiere(int lumiere);
 		void setTemperature(float temperature);
 		void setHumidity(float humidity);
+
+		int getSonMin();
+		int getSonMax();
+		int getSonMoy();
+		int getGaz();
+		int getLumiere();
+		float getTemperature();
+		float getHumidity();
 		
 		char* getJSON();
-		
+		void appliquerSeuil(XMNData* previousXMNData);
 	private:
 		unsigned int _iteration;
 		int _sonMin;

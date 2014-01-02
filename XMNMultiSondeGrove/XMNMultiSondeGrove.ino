@@ -38,15 +38,17 @@ unsigned int sonMin=SOUND_MAX;
 unsigned int sonMax=0;
 unsigned int sonMoy=0;
 // sauvegarde des derniere valeur comme ça si incoherence on redonne les dernieres captures
-float derniereMesureTemperature = 21;
-float derniereMesureHumidity = 60;
+XMNData *previousXmnData;
+
 //Un timer
 Timer t;
 
 void setup(void)
 {
-  // start serial port
-  Serial.begin(9600);
+  // Activation du moduule RF
+  pinMode(8, OUTPUT);    // initialize pin 8 to control the radio
+  digitalWrite(8, HIGH); // select the radio
+  Serial.begin(115200);    //Pour XIno RF 115200 coté arduino, 9600 coté raspberry pour lecture
   Serial.println("Initialisation des sondes");
   Serial.print("Humidity and temperature DHT22 - LIBRARY VERSION: ");
   Serial.println(DHT_LIB_VERSION);
@@ -57,6 +59,8 @@ void setup(void)
   //Appel la methode setSon tous les 2 secondes.
   t.every(100, getSon);
   t.every(5000, captureEtEnvoi);
+  //Initilisation de la structure capturant les valeurs de la derniere iteration;
+  previousXmnData = new XMNData(0);
 }
 
 void loop(void)
@@ -90,7 +94,10 @@ void captureEtEnvoi()
   char* buf = xmnData->getJSON();
   Serial.println(buf);
   free(buf);
-  delete xmnData;
+  //On applique les seuils pour ne pas avoir des points hors du gabarit de la courbe
+  xmnData->appliquerSeuil(previousXmnData);
+  delete previousXmnData;
+  previousXmnData = xmnData;
 }
 
 //Entre 0 et 80db sur l'IHM
@@ -162,14 +169,6 @@ void setCapteurTemperatureHumidite()
   Serial.print(",\t");
   Serial.print("DHT.temperature:");
   Serial.println(humidity, 1);
-  //Patch car certaine mesures etaient a -1000
-  if (temperature > 60) temperature = derniereMesureTemperature;
-  else if (temperature < -15) temperature = derniereMesureTemperature;
-  else derniereMesureTemperature = temperature;
-  
-  if (humidity > 100) humidity = derniereMesureHumidity;
-  else if (humidity < 0) humidity = derniereMesureHumidity;
-  else derniereMesureHumidity = humidity;
 
   //On sauvegarde les valeurs
   xmnData->setTemperature(temperature);

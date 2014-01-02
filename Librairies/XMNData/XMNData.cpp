@@ -8,10 +8,10 @@ XMNData::XMNData(unsigned int iteration) {
 	_sonMin=0;
 	_sonMax=0;
 	_sonMoy=0;
-	_gaz=0;
-	_lumiere=0;
-	_temperature=0;
-	_humidity=0;
+	_gaz=3;
+	_lumiere=120;
+	_temperature=21;
+	_humidity=60;
 }
 
 /* sonMin */
@@ -48,6 +48,44 @@ void XMNData::setHumidity(float humidity) {
 	_humidity = humidity;
 }
 
+
+
+
+/* sonMin */
+int XMNData::getSonMin() {
+	return _sonMin;
+}
+
+/* sonMax */
+int XMNData::getSonMax() {
+	return _sonMax;
+}
+
+/* sonMoy */
+int XMNData::getSonMoy() {
+	return _sonMoy;
+}
+
+/* sonGaz */
+int XMNData::getGaz() {
+	return _gaz;
+}
+
+/* lumiere */
+int XMNData::getLumiere() {
+	return _lumiere;
+}
+
+/* getTemperature */
+float XMNData::getTemperature() {
+	return _temperature;
+}
+/* getHumidity */
+float XMNData::getHumidity() {
+	return _humidity;
+}
+
+
 aJsonObject *root;
 
 char* XMNData::getJSON() {
@@ -79,5 +117,31 @@ char* XMNData::getJSON() {
 	char* buf = aJson.print(root);
  	aJson.deleteItem(root);
   	return buf;
+}
+
+/*  Suppression des valeurs trop haute ou basse 
+	On les remplace par les dernieres valeurs capturées
+	Si les valeurs sont bonnes alors on les sauvegardes comme valeurs precedemment capturées / ou en valeurs max
+	NB: la sonde de temperature et humidité propose des -1000 par moment... d'ou ce code.
+*/
+void XMNData::appliquerSeuil(XMNData* previousXMNData) {
+	  //Patch car certaine mesures etaient a -1000
+  if ((_temperature > 60) or (_temperature < -15)) _temperature =  previousXMNData->getTemperature();
+  else  previousXMNData->setTemperature(_temperature);
+  
+  if ((_humidity > 100) or (_humidity < 0)) _humidity = previousXMNData->getHumidity();
+  else previousXMNData->setHumidity(_humidity);
+  
+  if (_lumiere > 200) _lumiere = 200;
+  if (_lumiere < 0) _lumiere = 0;
+  
+  if (_sonMin > 80) _sonMin = 80;
+  if (_sonMin < 0) _sonMin = 0;
+
+  if (_sonMax > 80) _sonMax = 80;
+  if (_sonMax < 0) _sonMax = 0;
+
+  if (_sonMoy > 80) _sonMoy = 80;
+  if (_sonMoy < 0) _sonMoy = 0;
 }
  
