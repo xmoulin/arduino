@@ -31,7 +31,7 @@
 #include <aJSON.h>
 #include <MemoryFree.h>
 #include <Timer.h>
-#include <AirQuality.h>
+//#include <AirQuality.h>
 //#include <Arduino.h>
 //Utile pour le NFC
 #include <SPI.h>
@@ -47,7 +47,7 @@ dht DHT;
 #define SON_PIN 2
 
 //AirQuality
-AirQuality airqualitysensor;
+//AirQuality airqualitysensor;
 
 //Mes variables globales
 const boolean isComToPi = true;
@@ -79,7 +79,7 @@ int nfcUIDLength;
 ///////DEBUG /////
 const boolean skipAirQuality = true;
 //bcp de logs
-const boolean isVerbose = true;
+const boolean isVerbose = false;
 //Enormement de logs
 const boolean isDebug = false;
 
@@ -93,7 +93,7 @@ void setup(void)
   Serial.print("SETUP - Humidity and temperature DHT22 - LIBRARY VERSION: ");
   Serial.println(DHT_LIB_VERSION);
   Serial.println("SETUP - Air Quality - Init");
-  if (!skipAirQuality )airqualitysensor.init(14);
+  //if (!skipAirQuality )airqualitysensor.init(14);
   //Pour le NFC
   Serial.println("SETUP - NFC - Init");
   SPI.begin();                        // Init SPI bus
@@ -138,7 +138,7 @@ void captureEtEnvoi()
   setCapteurLumiere();  
   setCapteurTemperatureHumidite();
   setSon();  
-  if (!skipAirQuality) setGaz();
+  //if (!skipAirQuality) setGaz();
   if (isVerbose) {
     Serial.print("Lumiere=");
     Serial.println(xmnData->getLumiere());
@@ -238,7 +238,7 @@ void setCapteurTemperatureHumidite()
 }
 
 //Entre 0 et 4 sur l'IHM
-void setGaz()
+/*void setGaz()
 {
   int current_quality=airqualitysensor.slope();
   if (current_quality >= 0)// if a valid data returned.
@@ -268,7 +268,7 @@ ISR(TIMER2_OVF_vect)
   {
     airqualitysensor.counter++;
   }
-}
+}*/
 
 ////////////////////////////////
 ///           NFC

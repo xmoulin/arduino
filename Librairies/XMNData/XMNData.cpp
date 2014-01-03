@@ -115,6 +115,7 @@ char* XMNData::getJSON() {
   	/*
 	//PB de consommation mémoire, je reecris le truc a la main... 
 	//finalement, ça passe si je skip airQuality -> freeMemory()=693
+	//Si je supprime completement les lib de l'air quality -> freeMemory()=755
 	//Sinon freeMemory()=561 -> plus de Json
   	//string message;
   	//message = "{iteration:$iteration,sonMin:$sonMin,sonMax:$sonMax,sonMoy:$sonMoy,gaz:$gaz,lumiere:$lumiere,temperature:$temperature,humidity:$humidity}";
@@ -123,6 +124,7 @@ char* XMNData::getJSON() {
 	strcat(message, "}");
 	//message.replace("$iteration", _iteration);
 	//message.replace("$temperature", _temperature);
+	//{"iteration":36,"sonMin":0,"sonMax":14,"sonMoy":0,"lumiere":64,"temperature":21.70000, ...
   	return message;*/
 }
 
