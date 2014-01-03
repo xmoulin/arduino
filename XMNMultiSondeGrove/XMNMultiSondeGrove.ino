@@ -1,15 +1,38 @@
-#include <Servo.h>
-
 /*
   Sonde de l'open space
- */
+   
+ Synthese de l'utilisation des PINs
+ 
+ * Pin            Signal       	   Description
+ *------------------------------------------------------------
+ * 0 		       	   
+ * 1 		       	   
+ * 2 		       	   
+ * 3 		       	   
+ * 4 		       	   
+ * 5 		       	   
+ * 6 		  Grove DHT22 	   Temperature / Humidité
+ * 7 		       	   
+ * 8 		  RF     	   PIN pour arduino Xino
+ * 9 		  Reset     	   NFC
+ * 10		  SPI SS    	   NFC
+ * 11		  SPI MOSI  	   NFC
+ * 12		  SPI MISO  	   NFC
+ * 13		  SPI SCK   	   NFC
+ * A0 		  Grove Air Q. 	   GAZ
+ * A1 		  Grove Light 	   Lumiere
+ * A2 		  Grove Sound  	   SON     	   
+ * A3 		       	   
+ * A4 		       	   
+ * A5 		       	   
+ */	
 #include <DHT22.h>
 #include <XMNData.h>
-//#include <aJSON.h>
+#include <aJSON.h>
 #include <MemoryFree.h>
 #include <Timer.h>
 #include <AirQuality.h>
-#include <Arduino.h>
+//#include <Arduino.h>
 //Utile pour le NFC
 #include <SPI.h>
 #include <MFRC522.h>
@@ -46,27 +69,19 @@ XMNData *previousXmnData;
 //Un timer
 Timer t;
 
-/* NFC
- ----------------------------------------------------------------------------- Nicola Coppola
- * Pin layout should be as follows:
- * Signal     Pin              Pin               Pin
- *            Arduino Uno      Arduino Mega      MFRC522 board
- * ------------------------------------------------------------
- * Reset      9                5                 RST
- * SPI SS     10               53                SDA
- * SPI MOSI   11               52                MOSI
- * SPI MISO   12               51                MISO
- * SPI SCK    13               50                SCK
- *
- * The reader can be found on eBay for around 5 dollars. Search for "mf-rc522" on ebay.com. 
- * https://github.com/miguelbalboa/rfid/tree/master/examples
- */
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN);        // Create MFRC522 instance.
 byte previousNfcUID[7];
 byte nfcUID[7];
 int nfcUIDLength;
+
+///////DEBUG /////
+const boolean skipAirQuality = true;
+//bcp de logs
+const boolean isVerbose = true;
+//Enormement de logs
+const boolean isDebug = false;
 
 void setup(void)
 {
@@ -78,19 +93,19 @@ void setup(void)
   Serial.print("SETUP - Humidity and temperature DHT22 - LIBRARY VERSION: ");
   Serial.println(DHT_LIB_VERSION);
   Serial.println("SETUP - Air Quality - Init");
-  airqualitysensor.init(14);
+  if (!skipAirQuality )airqualitysensor.init(14);
   //Pour le NFC
   Serial.println("SETUP - NFC - Init");
-  //SPI.begin();                        // Init SPI bus
-  //mfrc522.PCD_Init();        // Init MFRC522 card
+  SPI.begin();                        // Init SPI bus
+  mfrc522.PCD_Init();        // Init MFRC522 card
   Serial.println("SETUP - Scan PICC to see UID and type...");
 
   Serial.println("SETUP - delay puis init timer");
   delay(1000);//Wait rest of 1000ms recommended delay before
 
   t.every(100, getSon);
-  //t.every(100, checkNFCCard);
-  //t.every(5000, resetNfcPreviousValue);
+  t.every(100, checkNFCCard);
+  t.every(5000, resetNfcPreviousValue);
   t.every(5000, captureEtEnvoi);
   //Initilisation de la structure capturant les valeurs de la derniere iteration;
   previousXmnData = new XMNData(0);
@@ -113,26 +128,31 @@ void captureEtEnvoi()
   if (iteration == 64000) {
     iteration = 1;
   }
-
-  Serial.print("freeMemory()=");
-  Serial.println(freeMemory());
-  Serial.print("captureEtEnvoi - Iteration ");
-  Serial.println(iteration);
+  if (isVerbose) {
+    Serial.print("freeMemory()=");
+    Serial.println(freeMemory());
+    Serial.print("captureEtEnvoi - Iteration ");
+    Serial.println(iteration);
+  }
   xmnData = new XMNData(iteration);
   setCapteurLumiere();  
   setCapteurTemperatureHumidite();
   setSon();  
-  setGaz();
-  Serial.print("Lumiere=");
-  Serial.println(xmnData->getLumiere());
+  if (!skipAirQuality) setGaz();
+  if (isVerbose) {
+    Serial.print("Lumiere=");
+    Serial.println(xmnData->getLumiere());
+  }
   //On applique les seuils pour ne pas avoir des points hors du gabarit de la courbe
   xmnData->appliquerSeuil(previousXmnData);
-  Serial.print("Lumiere=");
-  Serial.println(xmnData->getLumiere());
+  if (isVerbose) {
+    Serial.print("Lumiere=");
+    Serial.println(xmnData->getLumiere());
+  }
   Serial.println("Flux JSON=");
   char* buf = xmnData->getJSON();
   Serial.println(buf);
-  //free(buf);
+  free(buf);
   delete previousXmnData;
   previousXmnData = xmnData;
 }
@@ -142,8 +162,10 @@ void getSon()
 {
   iterationSon++;
   int sonInstantane = analogRead(SON_PIN);
-  //Serial.print("Son=");
-  //Serial.println(sonInstantane);
+  if (isDebug) {
+    Serial.print("Son=");
+    Serial.println(sonInstantane);
+  }
   //Positionne le max
   if (sonInstantane >= sonMax) sonMax = sonInstantane;
   //Positionne le min
@@ -171,10 +193,12 @@ void setCapteurLumiere()
   int sensorValue = analogRead(LUMIERE_PIN);
   int lux=sensorValue/5;
   if (lux > 200) lux = 200;
-  Serial.print("setCapteurLumiere - the analog read data is ");
-  Serial.print(sensorValue);
-  Serial.print(",the sensor resistance is ");
-  Serial.println(lux);
+  if (isVerbose) {
+    Serial.print("setCapteurLumiere - the analog read data is ");
+    Serial.print(sensorValue);
+    Serial.print(",the sensor resistance is ");
+    Serial.println(lux);
+  }
   xmnData->setLumiere(lux);
 }
 
@@ -201,12 +225,13 @@ void setCapteurTemperatureHumidite()
   // DISPLAY DATA
   float temperature = DHT.temperature;
   float humidity = DHT.humidity;
-  Serial.print("setCapteurTemperatureHumidite - DHT.humidity:");
-  Serial.print(temperature, 1);
-  Serial.print(",\t");
-  Serial.print("DHT.temperature:");
-  Serial.println(humidity, 1);
-
+  if (isVerbose) {
+    Serial.print("setCapteurTemperatureHumidite - DHT.humidity:");
+    Serial.print(temperature, 1);
+    Serial.print(",\t");
+    Serial.print("DHT.temperature:");
+    Serial.println(humidity, 1);
+  }
   //On sauvegarde les valeurs
   xmnData->setTemperature(temperature);
   xmnData->setHumidity(humidity);
@@ -219,13 +244,13 @@ void setGaz()
   if (current_quality >= 0)// if a valid data returned.
   {
     if (current_quality==0)
-      Serial.println("setGaz - High pollution! Force signal active");
+      if (isVerbose) Serial.println("setGaz - High pollution! Force signal active");
     else if (current_quality==1)
-      Serial.println("setGaz - High pollution!");
+      if (isVerbose) Serial.println("setGaz - High pollution!");
     else if (current_quality==2)
-      Serial.println("setGaz - Low pollution!");
+      if (isVerbose) Serial.println("setGaz - Low pollution!");
     else if (current_quality ==3)
-      Serial.println("setGaz - Fresh air");
+      if (isVerbose) Serial.println("setGaz - Fresh air");
   }
   xmnData->setGaz(current_quality);
 }
@@ -291,7 +316,7 @@ void checkNFCCard()
 boolean isSameNFCCard() {
   for (byte i = 0; i < 7; i++) {
     if (previousNfcUID[i] != nfcUID[i]) { 
-      Serial.print("NFC - isSameNFCCard KO");
+      if (isVerbose) Serial.print("NFC - isSameNFCCard KO");
       return false;
     }
   } 
@@ -300,7 +325,7 @@ boolean isSameNFCCard() {
 
 //Copie des données de la carte sur la zone memoire utile a stoquer les valeurs du precedent tour de boucle
 void copyActualNfcToPreviousNfc() {
-        Serial.println("NFC - nouvelle carte, on memorise");
+        if (isVerbose) Serial.println("NFC - nouvelle carte, on memorise");
         for (byte i = 0; i < 7; i++) {
 	  previousNfcUID[i]=nfcUID[i];
 	}
@@ -308,7 +333,7 @@ void copyActualNfcToPreviousNfc() {
 
 //Suppression des données sauvegardees, on accepte de nouveau n'importe quelle carte
 void resetNfcPreviousValue() {
-        Serial.println("NFC - reset NFC");
+        if (isVerbose) Serial.println("NFC - reset NFC");
 	for (byte i = 0; i < 7; i++) {
 		previousNfcUID[i] = 0;
 	} 

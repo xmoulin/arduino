@@ -1,6 +1,5 @@
 #include "XMNData.h"
-//#include "FormatDouble.h"
-//#include "aJSON.h"
+#include "aJSON.h"
 
 //Constructeur
 XMNData::XMNData(unsigned int iteration) {
@@ -48,9 +47,6 @@ void XMNData::setHumidity(float humidity) {
 	_humidity = humidity;
 }
 
-
-
-
 /* sonMin */
 int XMNData::getSonMin() {
 	return _sonMin;
@@ -86,7 +82,7 @@ float XMNData::getHumidity() {
 }
 
 
-//aJsonObject *root;
+aJsonObject *root;
 
 char* XMNData::getJSON() {
 	/*char message[100] = "json";
@@ -103,8 +99,7 @@ char* XMNData::getJSON() {
   	strcat(message,buf);
   	strcat(message,"-testEncore");
   	strcat(message,"-test2");*/
-
- 	/*
+ 	
  	root=aJson.createObject(); 
  	aJson.addNumberToObject(root,"iteration", (int)_iteration);
  	aJson.addNumberToObject(root,"sonMin",_sonMin);
@@ -116,8 +111,19 @@ char* XMNData::getJSON() {
  	aJson.addNumberToObject(root,"humidity",_humidity);
 	char* buf = aJson.print(root);
  	aJson.deleteItem(root);
-  	return buf;*/
-  	return "Json";
+  	return buf;
+  	/*
+	//PB de consommation mémoire, je reecris le truc a la main... 
+	//finalement, ça passe si je skip airQuality -> freeMemory()=693
+	//Sinon freeMemory()=561 -> plus de Json
+  	//string message;
+  	//message = "{iteration:$iteration,sonMin:$sonMin,sonMax:$sonMax,sonMoy:$sonMoy,gaz:$gaz,lumiere:$lumiere,temperature:$temperature,humidity:$humidity}";
+	char message[200] = "{iteration:";
+	strcat(message,(const char*) _iteration);
+	strcat(message, "}");
+	//message.replace("$iteration", _iteration);
+	//message.replace("$temperature", _temperature);
+  	return message;*/
 }
 
 /*  Suppression des valeurs trop haute ou basse 
