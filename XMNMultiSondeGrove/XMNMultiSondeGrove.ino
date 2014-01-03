@@ -7,13 +7,13 @@
  *------------------------------------------------------------
  * 0 		       	   
  * 1 		       	   
- * 2 		       	   
+ * 2 		  BoutonLoadData   Bouton  	   
  * 3 		       	   
- * 4 		       	   
+ * 4 		  BoutonAdmin      Bouton	   
  * 5 		       	   
  * 6 		  Grove DHT22 	   Temperature / Humidité
- * 7 		       	   
- * 8 		  RF     	   PIN pour arduino Xino
+ * 7 		  BoutonToogle     Bouton
+ * 8 		  RF Radio    	   PIN pour arduino Xino
  * 9 		  Reset     	   NFC
  * 10		  SPI SS    	   NFC
  * 11		  SPI MOSI  	   NFC
@@ -32,7 +32,6 @@
 #include <MemoryFree.h>
 #include <Timer.h>
 //#include <AirQuality.h>
-//#include <Arduino.h>
 //Utile pour le NFC
 #include <SPI.h>
 #include <MFRC522.h>
@@ -45,12 +44,20 @@ dht DHT;
 #define LUMIERE_PIN 1
 // Son - Grove Sound Sensor
 #define SON_PIN 2
-
+//BoutonToogle
+#define BOUTON_TOOGLE_PIN 7
+boolean isToggleBoutonHigh = false;
+//BoutonLoadData
+#define BOUTON_LOADDATA_PIN 2
+boolean isLoadDataBoutonHigh = false;
+//BoutonAdmin
+#define BOUTON_ADMIN_PIN 4
+boolean isAdminBoutonHigh = false;
 //AirQuality
 //AirQuality airqualitysensor;
 
 //Mes variables globales
-const boolean isComToPi = true;
+
 const int DELAY = 50;
 //Nombre d'iteration globale
 unsigned int iteration=0;
@@ -65,7 +72,6 @@ unsigned int sonMax=0;
 unsigned int sonMoy=0;
 // sauvegarde des derniere valeur comme ça si incoherence on redonne les dernieres captures
 XMNData *previousXmnData;
-
 //Un timer
 Timer t;
 
@@ -99,12 +105,18 @@ void setup(void)
   SPI.begin();                        // Init SPI bus
   mfrc522.PCD_Init();        // Init MFRC522 card
   Serial.println("SETUP - Scan PICC to see UID and type...");
+  //Init des boutons
+  pinMode(BOUTON_TOOGLE_PIN, INPUT);    // declare pushbutton as input
+  pinMode(BOUTON_ADMIN_PIN, INPUT);    // declare pushbutton as input
+  pinMode(BOUTON_LOADDATA_PIN, INPUT);    // declare pushbutton as input
 
   Serial.println("SETUP - delay puis init timer");
   delay(1000);//Wait rest of 1000ms recommended delay before
-
   t.every(100, getSon);
   t.every(100, checkNFCCard);
+  t.every(100, checkToggleBouton);
+  t.every(100, checkLoadDataBouton);
+  t.every(100, checkAdminBouton);
   t.every(5000, resetNfcPreviousValue);
   t.every(5000, captureEtEnvoi);
   //Initilisation de la structure capturant les valeurs de la derniere iteration;
@@ -148,8 +160,8 @@ void captureEtEnvoi()
   if (isVerbose) {
     Serial.print("Lumiere=");
     Serial.println(xmnData->getLumiere());
+    Serial.println("Flux JSON=");
   }
-  Serial.println("Flux JSON=");
   char* buf = xmnData->getJSON();
   Serial.println(buf);
   free(buf);
@@ -302,12 +314,13 @@ void checkNFCCard()
 	}
 
         if (!isSameNFCCard()) {       
-          Serial.print("NFC - Card UID:");
+          //Serial.print("NFC - Card UID:");
+          Serial.print("{\"action\":NFC,\"id\":");
       	  for (byte i = 0; i < nfcUIDLength; i++) {
       		Serial.print(nfcUID[i] < 0x10 ? " 0" : " ");
       		Serial.print(nfcUID[i], HEX);
       	  } 
-  	  Serial.println();
+  	  Serial.println("}");
           copyActualNfcToPreviousNfc();
         }
 }
@@ -339,3 +352,55 @@ void resetNfcPreviousValue() {
 	} 
 }
 
+void checkToggleBouton() {
+  int val = digitalRead(BOUTON_TOOGLE_PIN);  // read input value
+  delay(20); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+  if (val == HIGH) {         // check if the input is HIGH (button released)
+    if (!isOneBoutonPress()) {//Si on vient de passer le bouton à haut - afin de gerer le cas à le bouton est laissé appuyer plus d'un cycle
+      Serial.println("{\"action\":toogleBouton}");
+      isToggleBoutonHigh = true;
+    }
+  } else {
+    isToggleBoutonHigh = false;
+  }
+}
+
+void checkLoadDataBouton() {
+  int val = digitalRead(BOUTON_LOADDATA_PIN);  // read input value
+  delay(20); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+  if (val == HIGH) {         // check if the input is HIGH (button released)
+    if (!isOneBoutonPress()) {//Si on vient de passer le bouton à haut - afin de gerer le cas à le bouton est laissé appuyer plus d'un cycle
+      Serial.println("{\"action\":loadDataBouton}");
+      isLoadDataBoutonHigh = true;
+    }
+  } else {
+    isLoadDataBoutonHigh = false;
+  }
+}
+
+void checkAdminBouton() {
+  int val = digitalRead(BOUTON_ADMIN_PIN);  // read input value
+  delay(20); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+  if (val == HIGH) {         // check if the input is HIGH (button released)
+    /*Serial.print("!isOneBoutonPress=");
+    Serial.println(!isOneBoutonPress());
+    Serial.print("isAdminBoutonHigh=");
+    Serial.println(isAdminBoutonHigh);
+    Serial.print("isLoadDataBoutonHigh=");
+    Serial.println(isLoadDataBoutonHigh);
+    Serial.print("isToggleBoutonHigh=");
+    Serial.println(isToggleBoutonHigh);*/
+    if (!isOneBoutonPress()) {//Si on vient de passer le bouton à haut - afin de gerer le cas à le bouton est laissé appuyer plus d'un cycle
+      Serial.println("{\"action\":adminBouton}");
+      isAdminBoutonHigh = true;
+    }
+  } else {
+    isAdminBoutonHigh = false;
+  }
+}
+
+//Retourne vrai si un des boutons est appuyé (pour contrer les parasites http://arduino.cc/en/Tutorial/AnalogInputPins )
+//Suite au clic sur un bouton, d'autres pins s'activent...
+boolean isOneBoutonPress() {
+  return (isAdminBoutonHigh || isLoadDataBoutonHigh || isToggleBoutonHigh);
+}
