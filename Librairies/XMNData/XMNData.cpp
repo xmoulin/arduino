@@ -1,6 +1,6 @@
 #include "XMNData.h"
 //#include "FormatDouble.h"
-#include "aJSON.h"
+//#include "aJSON.h"
 
 //Constructeur
 XMNData::XMNData(unsigned int iteration) {
@@ -86,7 +86,7 @@ float XMNData::getHumidity() {
 }
 
 
-aJsonObject *root;
+//aJsonObject *root;
 
 char* XMNData::getJSON() {
 	/*char message[100] = "json";
@@ -104,7 +104,7 @@ char* XMNData::getJSON() {
   	strcat(message,"-testEncore");
   	strcat(message,"-test2");*/
 
- 	
+ 	/*
  	root=aJson.createObject(); 
  	aJson.addNumberToObject(root,"iteration", (int)_iteration);
  	aJson.addNumberToObject(root,"sonMin",_sonMin);
@@ -116,7 +116,8 @@ char* XMNData::getJSON() {
  	aJson.addNumberToObject(root,"humidity",_humidity);
 	char* buf = aJson.print(root);
  	aJson.deleteItem(root);
-  	return buf;
+  	return buf;*/
+  	return "Json";
 }
 
 /*  Suppression des valeurs trop haute ou basse 
