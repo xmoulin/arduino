@@ -358,7 +358,7 @@ void checkToggleBouton() {
   delay(20); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
   if (val == HIGH) {         // check if the input is HIGH (button released)
     if (!isOneBoutonPress()) {//Si on vient de passer le bouton à haut - afin de gerer le cas à le bouton est laissé appuyer plus d'un cycle
-      Serial.println("{\"action\":\"toogleBouton\"}");
+      Serial.println("{\"action\":\"toggleBouton\"}");
       isToggleBoutonHigh = true;
     }
   } else {
