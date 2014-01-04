@@ -315,12 +315,13 @@ void checkNFCCard()
 
         if (!isSameNFCCard()) {       
           //Serial.print("NFC - Card UID:");
-          Serial.print("{\"action\":NFC,\"id\":");
+          //Objectif, retourner {"action":NFC,"id": 44 94 72 1A}
+          Serial.print("{\"action\":\"NFC\",\"id\":\"");
       	  for (byte i = 0; i < nfcUIDLength; i++) {
       		Serial.print(nfcUID[i] < 0x10 ? " 0" : " ");
       		Serial.print(nfcUID[i], HEX);
       	  } 
-  	  Serial.println("}");
+  	  Serial.println("\"}");
           copyActualNfcToPreviousNfc();
         }
 }
@@ -357,7 +358,7 @@ void checkToggleBouton() {
   delay(20); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
   if (val == HIGH) {         // check if the input is HIGH (button released)
     if (!isOneBoutonPress()) {//Si on vient de passer le bouton à haut - afin de gerer le cas à le bouton est laissé appuyer plus d'un cycle
-      Serial.println("{\"action\":toogleBouton}");
+      Serial.println("{\"action\":\"toogleBouton\"}");
       isToggleBoutonHigh = true;
     }
   } else {
@@ -370,7 +371,7 @@ void checkLoadDataBouton() {
   delay(20); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
   if (val == HIGH) {         // check if the input is HIGH (button released)
     if (!isOneBoutonPress()) {//Si on vient de passer le bouton à haut - afin de gerer le cas à le bouton est laissé appuyer plus d'un cycle
-      Serial.println("{\"action\":loadDataBouton}");
+      Serial.println("{\"action\":\"loadDataBouton\"}");
       isLoadDataBoutonHigh = true;
     }
   } else {
@@ -391,7 +392,7 @@ void checkAdminBouton() {
     Serial.print("isToggleBoutonHigh=");
     Serial.println(isToggleBoutonHigh);*/
     if (!isOneBoutonPress()) {//Si on vient de passer le bouton à haut - afin de gerer le cas à le bouton est laissé appuyer plus d'un cycle
-      Serial.println("{\"action\":adminBouton}");
+      Serial.println("{\"action\":\"adminBouton\"}");
       isAdminBoutonHigh = true;
     }
   } else {
