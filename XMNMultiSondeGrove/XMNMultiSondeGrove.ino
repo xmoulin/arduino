@@ -14,11 +14,11 @@
  * 6 		  Grove DHT22 	   Temperature / Humidité
  * 7 		  BoutonToogle     Bouton
  * 8 		  RF Radio    	   PIN pour arduino Xino
- * 9 		  Reset     	   NFC
- * 10		  SPI SS    	   NFC
- * 11		  SPI MOSI  	   NFC
- * 12		  SPI MISO  	   NFC
- * 13		  SPI SCK   	   NFC
+ * 9 		  Reset     	   NFC - Noir (2)
+ * 10		  SPI SS    	   NFC - Vert (8)
+ * 11		  SPI MOSI  	   NFC - Orange (6)
+ * 12		  SPI MISO  	   NFC - Rouge (5)
+ * 13		  SPI SCK   	   NFC - Jaune (7)
  * A0 		  Grove Air Q. 	   GAZ
  * A1 		  Grove Light 	   Lumiere
  * A2 		  Grove Sound  	   SON     	   
