@@ -86,7 +86,7 @@ int nfcUIDLength;
 const boolean skipAirQuality = true;
 //bcp de logs
 const boolean isVerbose = false;
-//Enormement de logs
+//Enormement de logs, notamment le son toutes les 100ms.
 const boolean isDebug = false;
 
 void setup(void)
@@ -178,6 +178,9 @@ void getSon()
     Serial.print("Son=");
     Serial.println(sonInstantane);
   }
+  //On ecrete a 80db max a ce niveau de code pour que la moyenne ne soit pas deconnante.
+  //Effectivement, si je laisse passer des 400, la moyenne risque d etre potentiellement superieur au max
+  if (sonInstantane > SOUND_MAX) sonInstantane = SOUND_MAX;
   //Positionne le max
   if (sonInstantane >= sonMax) sonMax = sonInstantane;
   //Positionne le min
@@ -190,8 +193,10 @@ void getSon()
 void setSon()
 {
   xmnData->setSonMin(sonMin);  
-  xmnData->setSonMoy(sonMoy/iterationSon);
   xmnData->setSonMax(sonMax);
+  //On supprime le son max pour calculer la moyenne afin de lisser et de chercher à supprimer les points aberrants.
+  //Dans l'absolue, il faudrait écrêter comme on le fait pour une gaussienne : les 20% max et les 20% min.
+  xmnData->setSonMoy((sonMoy-sonMax)/(iterationSon-1));
   //Reinit des valueurs min et max sauvegardée
   sonMin=SOUND_MAX;
   sonMax=0;
