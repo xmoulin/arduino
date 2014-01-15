@@ -118,7 +118,8 @@ void setup(void)
   t.every(100, checkLoadDataBouton);
   t.every(100, checkAdminBouton);
   t.every(5000, resetNfcPreviousValue);
-  t.every(5000, captureEtEnvoi);
+  t.every(5000, captureEtEnvoi); //Toutes les 5 secondes - pour le mode demo
+  //t.every(60000, captureEtEnvoi); //Toutes les minutes - pour le mode standard
   //Initilisation de la structure capturant les valeurs de la derniere iteration;
   previousXmnData = new XMNData(0);
 }
@@ -175,12 +176,20 @@ void getSon()
   iterationSon++;
   int sonInstantane = analogRead(SON_PIN);
   if (isDebug) {
-    Serial.print("Son=");
+    Serial.print("Son capteur=");
     Serial.println(sonInstantane);
   }
+  //On garde la sensibilité elevée mais on lise un peu -> + 30db et %2  le chiffre capturé
+  sonInstantane = (sonInstantane/2)+20;
   //On ecrete a 80db max a ce niveau de code pour que la moyenne ne soit pas deconnante.
   //Effectivement, si je laisse passer des 400, la moyenne risque d etre potentiellement superieur au max
   if (sonInstantane > SOUND_MAX) sonInstantane = SOUND_MAX;
+ 
+  if (isDebug) {
+    Serial.print("Son apres lissage=");
+    Serial.println(sonInstantane);
+  }
+
   //Positionne le max
   if (sonInstantane >= sonMax) sonMax = sonInstantane;
   //Positionne le min
