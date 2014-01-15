@@ -179,7 +179,7 @@ void getSon()
     Serial.print("Son capteur=");
     Serial.println(sonInstantane);
   }
-  //On garde la sensibilité elevée mais on lise un peu -> + 30db et %2  le chiffre capturé
+  //On garde la sensibilité elevée mais on lise un peu -> + 20db et division par 2 du chiffre capturé
   sonInstantane = (sonInstantane/2)+20;
   //On ecrete a 80db max a ce niveau de code pour que la moyenne ne soit pas deconnante.
   //Effectivement, si je laisse passer des 400, la moyenne risque d etre potentiellement superieur au max
