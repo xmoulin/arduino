@@ -9,10 +9,10 @@
  * 1 		       	   
  * 2 		  BoutonLoadData   Bouton  	   
  * 3 		       	   
- * 4 		  BoutonAdmin      Bouton	   
+ * 4 		  BoutonToogle      Bouton	   
  * 5 		       	   
  * 6 		  Grove DHT22 	   Temperature / Humidité
- * 7 		  BoutonToogle     Bouton
+ * 7 		  BoutonAdmin     Bouton
  * 8 		  RF Radio    	   PIN pour arduino Xino
  * 9 		  Reset     	   NFC - Noir (2)
  * 10		  SPI SS    	   NFC - Vert (8)
@@ -45,13 +45,13 @@ dht DHT;
 // Son - Grove Sound Sensor
 #define SON_PIN 2
 //BoutonToogle
-#define BOUTON_TOOGLE_PIN 7
+#define BOUTON_TOOGLE_PIN 4
 boolean isToggleBoutonHigh = false;
 //BoutonLoadData
 #define BOUTON_LOADDATA_PIN 2
 boolean isLoadDataBoutonHigh = false;
 //BoutonAdmin
-#define BOUTON_ADMIN_PIN 4
+#define BOUTON_ADMIN_PIN 7
 boolean isAdminBoutonHigh = false;
 //AirQuality
 //AirQuality airqualitysensor;
