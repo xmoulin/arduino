@@ -1,5 +1,5 @@
   
-
+//ATTENTION : Fonctione seulement sur un IDE 1.0.6
 //period between posts, set at 60 seconds
 #define DELAY_PERIOD 10000
 
@@ -7,15 +7,15 @@
 #define WIFI_ENABLE_PIN 13
 
 // TODO
-#define SSID         "YOUR-WIFI-SSID"
-#define PASS         "YOUR-WIFI-PASSWORD"
+#define SSID         "Livebox-5044"
+#define PASS         "91A0A76E067E32EC5AAEE656EA"
 
-#define HOST         "192.168.60.225"
+#define HOST         "192.168.1.19"
 #define HOST_NAME    "localhost"
 
 #define DEBUG         1
 
-#define REQ_PREFIX    "POST /event.php\r\n" \
+#define REQ_PREFIX    "POST /Distribution/CONTRAT\r\n" \
     "Host: " HOST_NAME "\r\n" \
     "Accept: *" "/" "*\r\n" \
     "Content-Length: " 
