@@ -66,13 +66,35 @@ int tempo = 120; // variable du tempo
 int duree = 0; // variable de durée de note
 unsigned long tempsDep; // variable de temps de départ
 int p = 0; // variable de position dans le tableau de mélodie
+
+//BoutonToogle
+#define BOUTON 4
+boolean isPressed = false;
+
 void setup() {
-  pinMode(pinSon,OUTPUT); 
+  pinMode(pinSon, OUTPUT);
+  pinMode(BOUTON, INPUT);    // declare pushbutton as input
   tempsDep = millis(); // initialisation du temps de départ
 }
 
 void loop() {
-  joue(); // appel de la fonction pour jouer la mélodie
+  checkBoutonPress();
+  if (isPressed)
+  {
+    joue(); // appel de la fonction pour jouer la mélodie
+  }
+}
+
+
+void checkBoutonPress() {
+  int val = digitalRead(BOUTON);  // read input value
+  Serial.print("bouton=");
+  Serial.println(val);
+  delay(20); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+  if (val == HIGH) {         // check if the input is HIGH (button released)
+    isPressed = true;
+    Serial.println("-----APPUYER------");
+  }
 }
 
 //fonction de lecture de la mélodie
@@ -92,11 +114,12 @@ void joue() {
       }
       p++; //incrémentation de la position dans le tableau
     }
-    else { 
+    else {
       noTone(pinSon);
-      p=0;// retour au début du tableau
-      duree=1000;// attente avant répétition
+      p = 0; // retour au début du tableau
+      duree = 1000; // attente avant répétition
+      isPressed = false;
     }
-    tempsDep=tempsAct;
+    tempsDep = tempsAct;
   }
 }
