@@ -1,16 +1,9 @@
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
-
-LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
-
 //variables
 int mode = 0; //mode dans le programme
 int taille = 0; // taille de la séquence en cours
 int posTest = 0; // position de la réponse
 int sequence[50]; //tableau de la séquence (50 max)
 int duree = 250; //temps pour l'allumage des LED
-int score = 0;
-int maxScore = 0;
 //constantes
 const int pinLed[4] = {2, 3, 4, 5}; //tableau de constantes pour les pins des LED
 const char pinSon = 8; //constante pour le pin du buzzer
@@ -20,11 +13,6 @@ const int pinBouton = A0; //constantes pour la lecture du CAN0
 void setup() {
   Serial.begin(9600);
   Serial.println("SETUP");
-  lcd.init();                      // initialize the lcd 
-  // Print a message to the LCD.
-  lcd.backlight();
-  lcd.print("Bonjour!");
-
   //initialisation des nombres aléatoires
   randomSeed(analogRead(1));
   //paramétrage des pins LED et pin buzzer en mode OUTPUT
@@ -42,7 +30,6 @@ void loop() {
   //les actions sont réalisées en fonction du mode en cours
   switch (mode) { //on regarde le mode
     case 0: //mode de démarrage
-      score=0;
       start(); // appel de la fonction de démarrage
       taille = 0; //on met la séquence à 0
       posTest = 0; //on recommence au début
@@ -72,24 +59,14 @@ void loop() {
 
 //fonction de son et lumière pour le démarrage d'une nouvelle séquence
 void start() {
-  lcd.clear();
-  lcd.print("Initialisation");
-  afficheScore();
   for (int l = 0; l < 5; l++) {
     sonLum(l, 300);
   }
-  
-  lcd.clear();
-  lcd.print("Ecoute bien.");
   delay(600);
 }
 
 //fonction pour de son et lumière pour valider une suite de réponses
 void valide() {
-  lcd.clear();
-  lcd.print("Bravo!");
-  score++;
-  afficheScore();
   for (int k = 0; k < 2; k++) {
     for (int l = 0; l < 5; l++) {
       sonLum(l, 30);
@@ -100,15 +77,12 @@ void valide() {
 
 //fonction de son et lumière pour invalider une suis de réponses
 void nonValide() {
-  lcd.clear();
-  lcd.print("Nonnnnnnnn!");
-  afficheScore();
   for (int k = 0; k < 2; k++) {
     for (int l = 4; l > -1; l--) {
       sonLum(l, 70);
     }
   }
-  delay(1000);
+  delay(200);
 }
 
 //fonction qui allume une LED (l) en jouant le son associé pendant une durée (d)
@@ -124,20 +98,8 @@ void sonLumSansDelay(int l, int d) {
 }
 //fonction de tirage aléatoire d'une séquence
 void augmenteSequence() {
-  sequence[taille] = random(16) / 4; //permet un tirage mieux réparti  
-  afficheScore();
+  sequence[taille] = random(16) / 4; //permet un tirage mieux réparti
   if (taille < 50) taille++;
-  
-}
-
-//On affiche la 2eme ligne du LCD
-void afficheScore() {
-  if (score > maxScore) maxScore = score;
-  lcd.setCursor(0, 1);
-  lcd.print("score=");
-  lcd.print(score);
-  lcd.print(" max=");
-  lcd.print(maxScore);
 }
 
 //fonction qui joue la séquence en cours
@@ -146,10 +108,7 @@ void joueSequence() {
   for (int l = 0; l < taille; l++) {
     sonLum(sequence[l], duree);
   }
-  lcd.clear();
-  lcd.print("A toi!");
-  afficheScore();
- }
+}
 
 //fonction qui teste l'état des boutons et retourne le numéro de bouton
 int testBouton() {
