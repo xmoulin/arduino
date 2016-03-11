@@ -7,10 +7,10 @@
 #define WIFI_ENABLE_PIN 13
 
 // TODO
-#define SSID         "Livebox-5044"
-#define PASS         "91A0A76E067E32EC5AAEE656EA"
+#define SSID         "Wifi_Moulin"
+#define PASS         "BaptisteEtPauline"
 
-#define HOST         "192.168.1.19"
+#define HOST         "192.168.0.15"
 #define HOST_NAME    "localhost"
 
 #define DEBUG         1
@@ -166,7 +166,7 @@ void httpPost(String data) {
     clearRx();
     printDebug("AT+CIPSTART=\"TCP\",\"");
     printDebug(HOST);
-    printlnDebug("\",8080");
+    printlnDebug("\",80");
     
     ret = readString(timeout, "OK", "ALREAY CONNECT", "ERROR", "busy"); 
 

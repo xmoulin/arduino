@@ -1,29 +1,28 @@
-//Cactus Rev Vé = Carte LyliPad Arduino USB.
+  
+//ATTENTION : Fonctione seulement sur un IDE 1.0.6
 
-#include <avr/pgmspace.h>
-#include "ESP8266.h"
-#include <SoftwareSerial.h>
-
-SoftwareSerial mySerial(3, 2); // uno sw RX(pin3) --> esp8266 TX, uno sw TX(pin2) --> esp8266 RX
-ESP8266 wifi(mySerial);
+#include "DHT22adafruit.h"
+#define DHTPIN 2     // what digital pin we're connected to
+#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+DHT dht(DHTPIN, DHTTYPE);
 
 //period between posts, set at 60 seconds
-#define DELAY_PERIOD 10000
+#define DELAY_PERIOD 1000*60*60
 
-// Important!! We use pin 13 for enable mySerial  
+// Important!! We use pin 13 for enable Serial1  
 #define WIFI_ENABLE_PIN 13
 
 // TODO
 #define SSID         "Wifi_Moulin"
 #define PASS         "BaptisteEtPauline"
 
-#define HOST         "192.168.0.14"
+#define HOST         "192.168.0.47"
 #define HOST_NAME    "localhost"
-#define PORT         "80"
+#define PORT         "1880"
 
 #define DEBUG         1
 
-#define REQ_PREFIX    "POST /event.php\r\n" \
+#define REQ_PREFIX    "POST /sensors/tempSalon\r\n" \
     "Host: " HOST_NAME "\r\n" \
     "Accept: *" "/" "*\r\n" \
     "Content-Length: " 
@@ -32,19 +31,19 @@ ESP8266 wifi(mySerial);
     "Content-Type: application/x-www-form-urlencoded\r\n" \
     "Connection: close\r\n\r\n" 
 
-#define printDebug(x)       Serial.print(F(x)); mySerial.print(F(x));
-#define printlnDebug(x)     Serial.println(F(x)); mySerial.println(F(x));
+#define printDebug(x)       Serial.print(F(x)); Serial1.print(F(x));
+#define printlnDebug(x)     Serial.println(F(x)); Serial1.println(F(x));
 
-#define printVar(x)         Serial.print(x); mySerial.print(x);
-#define printlnVar(x)       Serial.println(x); mySerial.println(x);
+#define printVar(x)         Serial.print(x); Serial1.print(x);
+#define printlnVar(x)       Serial.println(x); Serial1.println(x);
 
 
 long nextTime;
 String prevString;
 
 void clearRx() {
-    while(mySerial.available() > 0) {
-        mySerial.read();
+    while(Serial1.available() > 0) {
+        Serial1.read();
     }
 }
 
@@ -60,8 +59,8 @@ String readString(
     unsigned long start = millis();
 
     while (millis() - start < timeout) {
-        while(mySerial.available() > 0) {
-            a = mySerial.read();
+        while(Serial1.available() > 0) {
+            a = Serial1.read();
             if(a == '\0') {
                 continue;
             }
@@ -108,7 +107,7 @@ bool connectWifi() {
 
 void setup() {
 
-    mySerial.begin(9600);   //connection to ESP8266
+    Serial1.begin(9600);   //connection to ESP8266
     Serial.begin(9600);     //serial debug
 
     // For atmega32u4, Please set DEBUG = 0 if it not connected to USB
@@ -121,14 +120,14 @@ void setup() {
 
     delay(1000);
     //set mode needed for new boards
-    mySerial.println(F("AT+RST"));
+    Serial1.println(F("AT+RST"));
     delay(3000);//delay after mode change       
-    mySerial.println(F("AT+CWMODE=1"));
+    Serial1.println(F("AT+CWMODE=1"));
     delay(300);
-    mySerial.println(F("AT+RST"));
+    Serial1.println(F("AT+RST"));
     delay(3000);
     // Sinlge connection
-    mySerial.println(F("AT+CIPMUX=0"));
+    Serial1.println(F("AT+CIPMUX=0"));
     delay(500);
 
     if (connectWifi()) {
@@ -146,6 +145,9 @@ void setup() {
         Serial.println(F("Not got IP"));
     }
 
+    dht.begin();
+
+
     nextTime = millis(); //reset the timer
 }
 
@@ -154,8 +156,18 @@ void loop() {
     if(nextTime < millis()){
         Serial.print("timer reset: ");
         Serial.println(nextTime);
+        // Reading temperature or humidity takes about 250 milliseconds!
+        // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+        float h = dht.readHumidity();
+        // Read temperature as Celsius (the default)
+        float t = dht.readTemperature();
 
-        httpPost("test=123");
+        String data ="temp=";
+        data = data+t+"&humidity="+h+"&topic=/sensors/salon";
+        Serial.print("data=");
+        Serial.println(data);
+
+        httpPost(data);
 
         //reset timer
         nextTime = millis() + DELAY_PERIOD;       
@@ -174,7 +186,8 @@ void httpPost(String data) {
     clearRx();
     printDebug("AT+CIPSTART=\"TCP\",\"");
     printDebug(HOST);
-    printlnDebug("\",80");
+    printDebug("\",");
+    printlnDebug(PORT);
     
     ret = readString(timeout, "OK", "ALREAY CONNECT", "ERROR", "busy"); 
 
@@ -205,10 +218,10 @@ void httpPost(String data) {
     if (ret.indexOf(">") != -1) {
         // Send data
         Serial.println(F("ready to send:"));
-        mySerial.print(F(REQ_PREFIX));
-        mySerial.print(String(data.length()));
-        mySerial.print(F(REQ_SUFFIX));
-        mySerial.print(data);
+        Serial1.print(F(REQ_PREFIX));
+        Serial1.print(String(data.length()));
+        Serial1.print(F(REQ_SUFFIX));
+        Serial1.print(data);
 
         ret = readString(timeout, "OK");
         //clearRx();
