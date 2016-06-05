@@ -1,7 +1,7 @@
-#include <Wire.h> 
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27, 16, 2); // set the LCD address to 0x27 for a 16 chars and 2 line display
 
 //variables
 int mode = 0; //mode dans le programme
@@ -16,11 +16,15 @@ const int pinLed[4] = {2, 3, 4, 5}; //tableau de constantes pour les pins des LE
 const char pinSon = 8; //constante pour le pin du buzzer
 const int freqSon[4] = {261, 329, 392, 523}; //tableau de constantes des fréquences de sons
 const int pinBouton = A0; //constantes pour la lecture du CAN0
+const int BOUTON_1_PIN = 9;
+const int BOUTON_2_PIN = 10;
+const int BOUTON_3_PIN = 11;
+const int BOUTON_4_PIN = 12;
 
 void setup() {
   Serial.begin(9600);
   Serial.println("SETUP");
-  lcd.init();                      // initialize the lcd 
+  lcd.init();                      // initialize the lcd
   // Print a message to the LCD.
   lcd.backlight();
   lcd.print("Bonjour!");
@@ -33,8 +37,11 @@ void setup() {
     digitalWrite(l, LOW);
   }
   pinMode(pinSon, OUTPUT);
-  pinMode(pinBouton, INPUT);
-  
+  pinMode(BOUTON_1_PIN, INPUT);
+  pinMode(BOUTON_2_PIN, INPUT);
+  pinMode(BOUTON_3_PIN, INPUT);
+  pinMode(BOUTON_4_PIN, INPUT);
+
   Serial.println("SETUP OK");
 }
 
@@ -42,7 +49,7 @@ void loop() {
   //les actions sont réalisées en fonction du mode en cours
   switch (mode) { //on regarde le mode
     case 0: //mode de démarrage
-      score=0;
+      score = 0;
       start(); // appel de la fonction de démarrage
       taille = 0; //on met la séquence à 0
       posTest = 0; //on recommence au début
@@ -61,7 +68,7 @@ void loop() {
       int b = testBouton(); // on appelle la fonction de lecture des boutons
       if (b != -1) { //si bouton appuyé
         delay(100); //petite attente
-        sonLumSansDelay(b,duree); //on joue la note du joueur
+        sonLumSansDelay(b, duree); //on joue la note du joueur
         compare(b); // appel de la fonction de validation
       }
       break;
@@ -78,7 +85,7 @@ void start() {
   for (int l = 0; l < 5; l++) {
     sonLum(l, 300);
   }
-  
+
   lcd.clear();
   lcd.print("Ecoute bien.");
   delay(600);
@@ -124,10 +131,10 @@ void sonLumSansDelay(int l, int d) {
 }
 //fonction de tirage aléatoire d'une séquence
 void augmenteSequence() {
-  sequence[taille] = random(16) / 4; //permet un tirage mieux réparti  
+  sequence[taille] = random(16) / 4; //permet un tirage mieux réparti
   afficheScore();
   if (taille < 50) taille++;
-  
+
 }
 
 //On affiche la 2eme ligne du LCD
@@ -149,49 +156,41 @@ void joueSequence() {
   lcd.clear();
   lcd.print("A toi!");
   afficheScore();
- }
+}
 
 //fonction qui teste l'état des boutons et retourne le numéro de bouton
 int testBouton() {
-  //Cette fonction doit utiliser la fonction sonLum() et retourner le numéro du bouton appuyé ou -1 si aucun bouton n'est appuyé
-
   int bouton = -1;
-  int valeur = analogRead(pinBouton);
-  //Serial.println(valeur);
-  //Pour eviter les aberations de lecture, on fait 4 lectures
-  if (valeur != 0)
-  {
-    valeur = 0;
-    for (int i = 0; i < 4; i++) {
-      valeur += analogRead(pinBouton);
-      delay(5);
-    }
-    valeur = valeur / 4;
-    if (valeur >= 1013) { //nominal 1023 - min 1003
-      Serial.print(valeur);
-      Serial.println(" - bouton =0");
-      bouton = 0;
-    }
-    else if (valeur >= 992) { //nominal 1002 - min 973
-      Serial.print(valeur);
-      Serial.println(" - bouton =1");
+  int val = digitalRead(BOUTON_1_PIN);  // read input value;
+  int valDelay = 20;
+  delay(valDelay); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+  if (val == HIGH) {         // check if the input is HIGH (button released)
+    bouton = 0;
+    Serial.println("bouton 0");
+  } else {
+    val = digitalRead(BOUTON_2_PIN);  // read input value
+    delay(valDelay); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+    if (val == HIGH) {         // check if the input is HIGH (button released)
       bouton = 1;
-    }
-    else if (valeur >= 970) { //nominal 982 - min
-      Serial.print(valeur);
-      Serial.println(" - bouton =2");
-      bouton = 2;
-    }
-    else if (valeur >= 900) { //nominal 962 - min
-      Serial.print(valeur);
-      Serial.println(" - bouton =3");
-      bouton = 3;
-    }
-    else {
-      bouton = -1;
+      Serial.println("bouton 1");
+    } else {
+      val = digitalRead(BOUTON_3_PIN);  // read input value
+      delay(valDelay); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+      if (val == HIGH) {         // check if the input is HIGH (button released)
+        bouton = 2;
+        Serial.println("bouton 2");
+      } else {
+        val = digitalRead(BOUTON_4_PIN);  // read input value
+        delay(valDelay); //cf http://arduino.cc/en/Tutorial/AnalogInputPins have to wait a little before reading another value
+        if (val == HIGH) {         // check if the input is HIGH (button released)
+          Serial.println("bouton 3");
+          bouton = 3;
+        }
+      }
     }
   }
-
+  //Serial.print("bouton=");
+  //Serial.println(bouton);
   return bouton;
 }
 
