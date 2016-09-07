@@ -65,7 +65,7 @@ void checkSonnette() {
 }
 
 
-//Appel du serveur pour dire que รงa sonne
+//Appel du serveur pour dire que ça sonne
 void callServeur() {
   Serial.print("connecting to ");
   Serial.println(host);
