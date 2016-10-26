@@ -59,6 +59,7 @@ void loop(void) {
   sendTemperature();
   //period between posts, set at 30 minutes
   Serial.printf("Sleeping deep for %i seconds...", sleepSeconds);
+  //https://github.com/adafruit/ESP8266-Arduino
   ESP.deepSleep(sleepSeconds * 1000000);
   delay(100);
 }
