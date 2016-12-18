@@ -1,0 +1,60 @@
+/*
+    Detecte quand le thermostat declenche
+    Envoi l'info que sur changement d'etat
+    Quand on a du 24V sur le fil d'alim, active le photocoupler, et passe à l'état bas la PIN_THERMOSTAT
+    PIN_THERMOSTAT == LOW -> on ne chauffe pas
+    PIN_THERMOSTAT == HIGH -> on chauffe
+    isChauffageUp : boolean gardant le dernier état, pas defaut, il est à Haut).
+*/
+
+#include <Timer.h>
+
+//derniere etat de lecture
+int isChauffageUp = HIGH;
+
+//PIN de la thermostat
+const int PIN_THERMOSTAT = 5;
+
+//Temps d'attente avant la loop.
+const int DELAY = 50;
+
+//Un timer
+Timer t;
+
+void setup() {
+  Serial.begin(9600);
+  delay(10);
+
+  //Init des pin
+  pinMode(PIN_THERMOSTAT, INPUT_PULLUP);
+
+  //Init des timers
+  t.every(100, checkThermostat);
+  Serial.println("Setup OK");
+
+}
+
+void loop(void) {
+  delay(DELAY);
+  t.update();
+}
+
+//On verifie l'etat de du chauffage
+void checkThermostat() {
+  int val = digitalRead(PIN_THERMOSTAT);  // read input value;
+  if (isChauffageUp != val) {
+    Serial.println("Changement d'etat");
+    if (val == LOW) {
+      Serial.println("ne chauffe pas");
+    } else {
+      Serial.println("chauffe");
+    }
+    //On affecte la valeur lu à notre variable d'etat
+    isChauffageUp = val;
+  }
+}
+
+
+
+
+
