@@ -6,9 +6,6 @@
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 DHT dht(DHTPIN, DHTTYPE);
 
-//period between posts, set at 60 seconds
-#define DELAY_PERIOD 1000*60*60
-
 // Important!! We use pin 13 for enable Serial1  
 #define WIFI_ENABLE_PIN 13
 
@@ -19,8 +16,13 @@ DHT dht(DHTPIN, DHTTYPE);
 #define HOST         "192.168.0.47"
 #define HOST_NAME    "localhost"
 #define PORT         "1880"
+#define PIECE         "salon" //chambre
 
-#define DEBUG         1
+//period between posts, set at 10 minutes
+const unsigned long DELAY_PERIOD=600000;
+
+//Si connecté à lusb, mettre 1, sinon mettre 0
+#define DEBUG         0
 
 #define REQ_PREFIX    "POST /sensors/tempSalon\r\n" \
     "Host: " HOST_NAME "\r\n" \
@@ -38,7 +40,7 @@ DHT dht(DHTPIN, DHTTYPE);
 #define printlnVar(x)       Serial.println(x); Serial1.println(x);
 
 
-long nextTime;
+unsigned long nextTime;
 String prevString;
 
 void clearRx() {
@@ -109,12 +111,12 @@ void setup() {
 
     Serial1.begin(9600);   //connection to ESP8266
     Serial.begin(9600);     //serial debug
-
+    Serial.println("setup start");
     // For atmega32u4, Please set DEBUG = 0 if it not connected to USB
-    if(DEBUG) {
+/*    if(DEBUG) {
         while(!Serial);
     }
-
+*/
     pinMode(WIFI_ENABLE_PIN, OUTPUT);
     digitalWrite(WIFI_ENABLE_PIN, HIGH);
 
@@ -152,8 +154,9 @@ void setup() {
 }
 
 void loop() {
+
     //wait for timer to expire
-    if(nextTime < millis()){
+    //if(nextTime < millis()){
         Serial.print("timer reset: ");
         Serial.println(nextTime);
         // Reading temperature or humidity takes about 250 milliseconds!
@@ -163,16 +166,16 @@ void loop() {
         float t = dht.readTemperature();
 
         String data ="temp=";
-        data = data+t+"&humidity="+h+"&topic=/sensors/salon";
+        data = data+t+"&humidity="+h+"&topic=/sensors/PIECE";
         Serial.print("data=");
         Serial.println(data);
 
         httpPost(data);
 
         //reset timer
-        nextTime = millis() + DELAY_PERIOD;       
-    }
-
+      //  nextTime = millis() + DELAY_PERIOD;       
+    //}
+    delay(DELAY_PERIOD);
 }
 
 //web request needs to be sent without the http for now, https still needs some working
