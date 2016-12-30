@@ -112,7 +112,9 @@ void callServeur() {
     // Make a HTTP request:
     client.println("GET /sonnette HTTP/1.1");
     client.println("Host: ");
-    client.println(server);
+    client.print(server);
+    client.print(":");
+    client.println(httpPort);
     client.println("Connection: close");
     client.println();
     Serial.println("Appel reussi");
