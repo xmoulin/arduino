@@ -1,6 +1,7 @@
 /*
     Mesure de temperature exterieur
-
+    Test deepsleep
+    (GPIO16 needs to be tied to RST to wake from deepSleep.)
 */
 #include <ESP8266WiFi.h>
 #include "DHT22adafruit.h"
