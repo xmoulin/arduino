@@ -59,7 +59,7 @@ DeviceAddress ChauffageSol02 = { 0x28, 0xFF, 0xCD, 0x38, 0x81, 0x16, 0x05, 0x62 
 Timer timer_temperatureChauffageSol;
 float previousTemperatureDepart = 0;
 float previousTemperatureRetour = 0;
-
+int nbrRetry=0;
 
 //Temps d'attente avant la loop.
 const int DELAY = 50;
@@ -166,18 +166,33 @@ void sendTemperatureChauffageSol() {
   callServeur(data);
 }
 
-/*-----( Declare User-written Functions )-----*/
+  /*-----( Declare User-written Functions )-----*/
 float getTemperature(DeviceAddress deviceAddress)
 {
+ 
   float tempC = sensors.getTempC(deviceAddress);
 
   if (tempC == -127.00) // Measurement failed or no device found
   {
     Serial.println("Temperature Error");
-    tempC=0; //on fixe a 0, pour que le graph soit lisible si cela arrive.
+    nbrRetry++;
+    if (nbrRetry<=3) {
+      delay(200);
+      getTemperature(deviceAddress);
+    } else {
+      nbrRetry=0;
+      Serial.println("Temperature Error");  
+      //On donne la derniere valeur lue
+      if (deviceAddress == ChauffageSol01) {
+            tempC = previousTemperatureDepart;
+      } else {
+            tempC = previousTemperatureRetour;
+      }
+    }
   }
   else
   {
+    nbrRetry=0;
     Serial.print("C=");
     Serial.println(tempC);
   }
