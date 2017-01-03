@@ -178,7 +178,7 @@ float getTemperature(DeviceAddress deviceAddress)
     nbrRetry++;
     if (nbrRetry<=3) {
       delay(200);
-      getTemperature(deviceAddress);
+      tempC = getTemperature(deviceAddress);
     } else {
       nbrRetry=0;
       Serial.println("Temperature Error");  
