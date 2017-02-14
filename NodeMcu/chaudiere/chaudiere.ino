@@ -8,7 +8,10 @@
     isChauffageUp : boolean gardant le dernier état, pas defaut, il est à Haut).
 
   2)
-    Recupere la etmperature des arrivées/departs du chauffage par le sol
+    Recupere la temperature des arrivées/departs du chauffage par le sol
+
+  3)
+    Recupere la temperature du ballon d'eau chaude.
 */
 #include <ESP8266WiFi.h>
 #include <Timer.h>
@@ -52,14 +55,19 @@ OneWire oneWire(PIN_ONE_WIRE_BUS);
 // Pass address of our oneWire instance to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
 
-DeviceAddress ChauffageSol01 = { 0x28, 0xFF, 0x52, 0x5E, 0x81, 0x16, 0x05, 0x23 }; // "1"
-DeviceAddress ChauffageSol02 = { 0x28, 0xFF, 0xCD, 0x38, 0x81, 0x16, 0x05, 0x62 }; // "2"
+DeviceAddress chauffageSol01 = { 0x28, 0xFF, 0x52, 0x5E, 0x81, 0x16, 0x05, 0x23 }; // "1"
+DeviceAddress chauffageSol02 = { 0x28, 0xFF, 0xCD, 0x38, 0x81, 0x16, 0x05, 0x62 }; // "2"
+DeviceAddress ballon01 = { 0x28, 0xFF, 0xA8, 0x5F, 0xA1, 0x16, 0x05, 0x23 }; // "3"
 
 //timer du thermostat
 Timer timer_temperatureChauffageSol;
+Timer timer_temperatureBallon;
+
 float previousTemperatureDepart = 0;
 float previousTemperatureRetour = 0;
-int nbrRetry=0;
+float previousTemperatureBallon = 0;
+
+int nbrRetry = 0;
 
 //Temps d'attente avant la loop.
 const int DELAY = 50;
@@ -99,8 +107,9 @@ void setup() {
   //------- Initialize the Temperature measurement library--------------
   sensors.begin();
   // set the resolution to 10 bit (Can be 9 to 12 bits .. lower is faster)
-  sensors.setResolution(ChauffageSol01, 12);
-  sensors.setResolution(ChauffageSol02, 12);
+  sensors.setResolution(chauffageSol01, 12);
+  sensors.setResolution(chauffageSol02, 12);
+  sensors.setResolution(ballon01, 12);
 
 
   //Init des timers
@@ -108,6 +117,7 @@ void setup() {
   timer_temperatureChauffageSol.every(30000, checkEvolutionTemperatureChauffageSol);
   timer_temperatureChauffageSol.every(5 * 60 * 1000, sendTemperatureChauffageSol); //5 minutes
   //timer_temperatureChauffageSol.every(20 * 1000, sendTemperatureChauffageSol); //20 secondes pour les tests
+  timer_temperatureBallon.every(4 * 60 * 1000, sendTemperatureBallon); //4 minutes
   Serial.println("Setup OK");
 
 }
@@ -115,6 +125,7 @@ void setup() {
 void loop(void) {
   timer_thermostat.update();
   timer_temperatureChauffageSol.update();
+  timer_temperatureBallon.update();
 
   //Serial.printf("Sleeping deep for %i seconds...", sleepSeconds);
   //https://github.com/adafruit/ESP8266-Arduino
@@ -146,9 +157,9 @@ void checkThermostat() {
 
 //On verifie l'evolution de la temperature par le sol. S'il a bougée de + ou - 1 degree, on envoit
 void checkEvolutionTemperatureChauffageSol() {
-  float temperatureDepart = getTemperature(ChauffageSol01);
-  float temperatureRetour = getTemperature(ChauffageSol02);
-  if (temperatureDepart > (previousTemperatureDepart +1) || temperatureDepart < (previousTemperatureDepart -1) || temperatureRetour > (previousTemperatureRetour+1) || temperatureRetour < (previousTemperatureRetour-1 )){
+  float temperatureDepart = getTemperature(chauffageSol01);
+  float temperatureRetour = getTemperature(chauffageSol02);
+  if (temperatureDepart > (previousTemperatureDepart + 1) || temperatureDepart < (previousTemperatureDepart - 1) || temperatureRetour > (previousTemperatureRetour + 1) || temperatureRetour < (previousTemperatureRetour - 1 )) {
     Serial.println("Ecart de 1° de temperature, on archive");
     previousTemperatureDepart = temperatureDepart;
     previousTemperatureRetour = temperatureRetour;
@@ -156,43 +167,53 @@ void checkEvolutionTemperatureChauffageSol() {
   }
 }
 
-//On verifie l'etat de du chauffage
+//On envoie la temperature du chauffage par le sol
 void sendTemperatureChauffageSol() {
   sensors.requestTemperatures(); // Send the command to get temperatures
-  float temperatureDepart = getTemperature(ChauffageSol01);
-  float temperatureRetour = getTemperature(ChauffageSol02);
+  float temperatureDepart = getTemperature(chauffageSol01);
+  float temperatureRetour = getTemperature(chauffageSol02);
   String data = "/chaudiere?temperatureDepart=";
   data = data + temperatureDepart + "&temperatureRetour=" + temperatureRetour;
   callServeur(data);
 }
 
-  /*-----( Declare User-written Functions )-----*/
+//On envoie la temperature du chauffage ballon
+void sendTemperatureBallon() {
+  sensors.requestTemperatures(); // Send the command to get temperatures
+  float temperature = getTemperature(ballon01);
+  String data = "/ballon?temperature=";
+  data = data + temperature;
+  callServeur(data);
+}
+/*-----( Declare User-written Functions )-----*/
 float getTemperature(DeviceAddress deviceAddress)
 {
- 
+
   float tempC = sensors.getTempC(deviceAddress);
 
   if (tempC == -127.00) // Measurement failed or no device found
   {
     Serial.println("Temperature Error");
     nbrRetry++;
-    if (nbrRetry<=3) {
+    if (nbrRetry <= 3) {
       delay(200);
       tempC = getTemperature(deviceAddress);
     } else {
-      nbrRetry=0;
-      Serial.println("Temperature Error");  
+      nbrRetry = 0;
+      Serial.println("Temperature Error");
       //On donne la derniere valeur lue
-      if (deviceAddress == ChauffageSol01) {
-            tempC = previousTemperatureDepart;
+      if (deviceAddress == chauffageSol01) {
+        tempC = previousTemperatureDepart;
+      } else if (deviceAddress == chauffageSol02) {
+        tempC = previousTemperatureRetour;
       } else {
-            tempC = previousTemperatureRetour;
+        tempC = previousTemperatureBallon;
       }
     }
   }
   else
   {
-    nbrRetry=0;
+    nbrRetry = 0;
     Serial.print("C=");
     Serial.println(tempC);
   }
