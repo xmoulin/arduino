@@ -1,9 +1,11 @@
 // http://www.hacktronics.com/Tutorials/arduino-1-wire-address-finder.html
 // 0x28, 0xFF, 0x52, 0x5E, 0x81, 0x16, 0x05, 0x23 -> 1
 // 0x28, 0xFF, 0xCD, 0x38, 0x81, 0x16, 0x05, 0x62 -> 2
+// 0x28, 0xFF, 0xA8, 0x5F, 0xA1, 0x16, 0x05, 0x23 -> 3
+// 0x28, 0xFF, 0x67, 0xEE, 0xA0, 0x16, 0x04, 0x85 -> Piscine
 #include <OneWire.h>
 
-OneWire  ds(7);  // Connect your 1-wire device to pin 3
+OneWire  ds(4);  // Connect your 1-wire device to pin 7
 
 void setup(void) {
   Serial.begin(9600);
@@ -43,4 +45,6 @@ void discoverOneWireDevices(void) {
 
 void loop(void) {
   // nothing to see here
+  //discoverOneWireDevices();
+  //delay(10000);
 }
