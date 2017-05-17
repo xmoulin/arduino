@@ -62,6 +62,7 @@ void loop(void) {
   //https://github.com/adafruit/ESP8266-Arduino
   ESP.deepSleep(sleepSeconds * 1000000);
   delay(100);
+  //delay(5000);
 }
 
 //Envoi de la donnee
