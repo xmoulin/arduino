@@ -1,123 +1,169 @@
 /*
     Mesure de temperature exterieur
+    - Deepsleep (GPIO16 needs to be tied to RST to wake from deepSleep.)
 
+    25/11/2018
+    - MQTT
+    - OTA
+    - Change capteur de DHT22 à BME280
+    - Ajout capteur de pluie
 */
 #include <ESP8266WiFi.h>
-#include "DHT22adafruit.h"
-#define DHTPIN 5     // what digital pin we're connected to
-#define DHTTYPE DHT22   // DHT22  (AM2302), AM2321
-DHT dht(DHTPIN, DHTTYPE);
+#include "Adafruit_MQTT.h"
+#include "Adafruit_MQTT_Client.h"
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
+/************************* WiFi Access Point *********************************/
+
+#define WLAN_SSID       "Wifi_Moulin"
+#define WLAN_PASS       "BaptisteEtPauline"
+
+/************************* Adafruit.io Setup *********************************/
+
+#define AIO_SERVER      "192.168.0.47"
+#define AIO_SERVERPORT  1883                   // use 8883 for SSL
+#define AIO_USERNAME    ""
+#define AIO_KEY         ""
+
+/************ Global State (you don't need to change this!) ******************/
+
+// Create an ESP8266 WiFiClient class to connect to the MQTT server.
+WiFiClient client;
+// or... use WiFiFlientSecure for SSL
+//WiFiClientSecure client;
+
+// Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
+Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
+
+Adafruit_BME280 bme; // I2C
 
 //30 minutes
-const int sleepSeconds = 60*30;
+const int sleepSeconds = 60 * 30;
+//const int sleepSeconds = 10;
+/****************************** Feeds ***************************************/
 
-const char* ssid     = "Wifi_Moulin";
-const char* password = "BaptisteEtPauline";
+// Setup a feed called 'sensorTopic' for publishing.
+// Notice MQTT paths for AIO follow the form: <username>/feeds/<feedname>
+Adafruit_MQTT_Publish sensorTopic = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/sensors/ext");
+//Adafruit_MQTT_Publish sensorTopic = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/test/ext");
 
-#define HOST_NAME    "192.168.0.47"
-const char* host = "192.168.0.47";
-const int httpPort =  1880;
-
-//Temps d'attente avant la loop.
-const int DELAY = 1000;
-
-#define REQ_PREFIX    "POST /toMQTT\r\n" \
-    "Host: " HOST_NAME "\r\n" \
-    "Accept: *" "/" "*\r\n" \
-    "Content-Length: " 
-
-#define REQ_SUFFIX    "\r\n" \
-    "Content-Type: application/x-www-form-urlencoded\r\n" \
-    "Connection: close\r\n\r\n" 
+/*************************** Sketch Code ************************************/
+// Bug workaround for Arduino 1.6.6, it seems to need a function declaration
+// for some reason (only affects ESP8266, likely an arduino-builder bug).
+void MQTT_connect();
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(10);
 
-  //Init Wifi
-  Serial.println();
+  Serial.println(F("Adafruit MQTT Temp EXT"));
+
+  // Connect to WiFi access point.
+  Serial.println(); Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(ssid);
+  Serial.println(WLAN_SSID);
 
-  WiFi.begin(ssid, password);
-
+  WiFi.begin(WLAN_SSID, WLAN_PASS);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+  Serial.println();
 
-  Serial.println("");
   Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  Serial.println("IP address: "); Serial.println(WiFi.localIP());
+  Serial.println(F("BME280 test"));
 
-  dht.begin();
-  delay(DELAY);
+  bool status;
+  // (you can also pass in a Wire library object like &Wire2)
+  status = bme.begin();
+  if (!status) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
+  delay(500);
 }
 
-void loop(void) {
-  sendTemperature();
+uint32_t x = 0;
+
+void loop() {
+  // Ensure the connection to the MQTT server is alive (this will make the first
+  // connection and automatically reconnect when disconnected).  See the MQTT_connect
+  // function definition further below.
+  MQTT_connect();
+
+  float h = bme.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = bme.readTemperature();
+  //Pressure
+  float p = bme.readPressure() / 100.0F;
+
+  // Rain - read the sensor on analog A0:
+  int sensorReading = analogRead(A0);
+  Serial.print("sensorReading=");
+  Serial.println(sensorReading);
+  ///On fait qu'un petit nombre soit une petite pluie
+  int rain= map(sensorReading, 0, 1024, 1024, 0);
+
+  // Now we can publish stuff!
+  //Surrement plus simple que de passer par un String pour finir en tableau mais bon..
+  char dataChar[100];
+  String data = "{\"temperature\":\"";
+  data = data + t + "\",\"humidity\":\"" + h + "\",\"pressure\":\"" + p + "\",\"rain\":\"" + rain + "\",\"t\":\"/sensors/ext\"}";
+  //{"temperature":"24.40","humidity":"69.30","co2"="1887"&"t":"/sensors/haut"}
+
+  data.toCharArray(dataChar, 99);
+
+  Serial.print(F("Sending data:"));
+  Serial.println(dataChar);
+  if (! sensorTopic.publish(dataChar)) {
+    Serial.println(F("Failed"));
+  } else {
+    Serial.println(F("OK!"));
+  }
+  delay(1000);
+  // ping the server to keep the mqtt connection alive
+  // NOT required if you are publishing once every KEEPALIVE seconds
+  /*
+    if(! mqtt.ping()) {
+    mqtt.disconnect();
+    }
+  */
+
   //period between posts, set at 30 minutes
+  //Pin 16  à RST pour que cela fonctionne
   Serial.printf("Sleeping deep for %i seconds...", sleepSeconds);
   //https://github.com/adafruit/ESP8266-Arduino
   ESP.deepSleep(sleepSeconds * 1000000);
   delay(100);
-  //delay(5000);
 }
 
-//Envoi de la donnee
-void sendTemperature() {
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
+// Function to connect and reconnect as necessary to the MQTT server.
+// Should be called in the loop function and it will take care if connecting.
+void MQTT_connect() {
+  int8_t ret;
 
-  String data = "temperature=";
-  data = data + t + "&humidity=" + h + "&t=/sensors/" + "ext";
-  Serial.print("data=");
-  Serial.println(data);
-  callServeur(data);
-}
-
-//Appel du serveur pour envoyee les donnees
-void callServeur(String data) {
-  Serial.print("connecting to ");
-  Serial.println(host);
-
-  // Use WiFiClient class to create TCP connections
-  WiFiClient client;
-  if (!client.connect(host, httpPort)) {
-    Serial.println("connection failed");
+  // Stop if already connected.
+  if (mqtt.connected()) {
     return;
   }
 
-  Serial.print("Requesting URL: ");
-  Serial.println(data);
+  Serial.print("Connecting to MQTT... ");
 
-  Serial.print("Full HTTP stack");
-  Serial.println(REQ_PREFIX + String(data.length()) + REQ_SUFFIX + data);
-  
-  // This will send the request to the server
-  client.print(REQ_PREFIX + String(data.length()) + REQ_SUFFIX + data);
-  
-  unsigned long timeout = millis();
-  while (client.available() == 0) {
-    if (millis() - timeout > 5000) {
-      Serial.println(">>> Client Timeout !");
-      client.stop();
-      return;
+  uint8_t retries = 3;
+  while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
+    Serial.println(mqtt.connectErrorString(ret));
+    Serial.println("Retrying MQTT connection in 5 seconds...");
+    mqtt.disconnect();
+    delay(5000);  // wait 5 seconds
+    retries--;
+    if (retries == 0) {
+      // basically die and wait for WDT to reset me
+      while (1);
     }
   }
-
-  // Read all the lines of the reply from server and print them to Serial
-  while (client.available()) {
-    String line = client.readStringUntil('\r');
-    Serial.print(line);
-  }
-
-  Serial.println();
-  Serial.println("closing connection");
-  delay(2000);
+  Serial.println("MQTT Connected!");
 }
-
