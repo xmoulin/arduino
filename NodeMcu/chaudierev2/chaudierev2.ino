@@ -1,4 +1,11 @@
 /**
+  Module WIFI V3 Lua pour l'intégration NodeMCU de la mémoire ESP8266 + 32 Mbit (4 mo) flash USB-série CP2102.
+  https://onedrive.live.com/view.aspx?resid=66910441859E44CC%21115&id=documents&wd=target%28Perso%2FArduino.one%7C6FB95957-A285-41F8-A752-F65ECC2D1B40%2FNodemcu%20V3%20ESP8266%7CAF5CAEF0-9746-46D1-A64F-8630674B878B%2F%29
+onenote:https://d.docs.live.net/66910441859e44cc/Documents/Personnel/Perso/Arduino.one#Nodemcu%20V3%20ESP8266&section-id={6FB95957-A285-41F8-A752-F65ECC2D1B40}&page-id={AF5CAEF0-9746-46D1-A64F-8630674B878B}&end
+
+  Selection de la carte NodeMCU 1.0
+  
+  
   PIN
   - PIN_THERMOSTAT = 5; //activation du chauffage de la chaudiere
   - PIN_ONE_WIRE_BUS = 4; //sonde temperature
@@ -51,8 +58,9 @@ Timer timer_thermostat;
 //
 //TEMPERATURES
 //
-//PIN des sondes de temperature
+//PIN des sondes de temperature //Correspond à D2
 const int PIN_ONE_WIRE_BUS = 4;
+
 /*-----( Declare objects )-----*/
 // Setup a oneWire instance to communicate with any OneWire devices
 // (not just Maxim/Dallas temperature ICs)
@@ -63,7 +71,8 @@ DallasTemperature sensors(&oneWire);
 
 DeviceAddress chauffageSol01 = { 0x28, 0xFF, 0x52, 0x5E, 0x81, 0x16, 0x05, 0x23 }; // "1"
 DeviceAddress chauffageSol02 = { 0x28, 0xFF, 0xCD, 0x38, 0x81, 0x16, 0x05, 0x62 }; // "2"
-DeviceAddress ballon01 = { 0x28, 0xFF, 0xA8, 0x5F, 0xA1, 0x16, 0x05, 0x23 }; // "3"
+//DeviceAddress ballon01 = { 0x28, 0xFF, 0xA8, 0x5F, 0xA1, 0x16, 0x05, 0x23 }; // "3"
+DeviceAddress ballon01 = { 0x28, 0xFF, 0x12, 0x1B, 0xA1, 0x16, 0x04, 0x61 }; // "3 - nouveau ballon"
 
 //timer du thermostat
 Timer timer_temperatureChauffageSol;
@@ -275,7 +284,3 @@ void callServeur(String url) {
   Serial.println("closing connection");
   delay(2000);
 }
-
-
-
-
