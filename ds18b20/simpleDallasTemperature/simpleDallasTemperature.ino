@@ -6,7 +6,7 @@
 #include <OneWire.h> //Librairie du bus OneWire
 #include <DallasTemperature.h> //Librairie du capteur
 
-OneWire oneWire(7); //Bus One Wire sur la pin 7 de l'arduino
+OneWire oneWire(4); //Bus One Wire sur la pin 7 de l'arduino
 DallasTemperature sensors(&oneWire); //Utilistion du bus Onewire pour les capteurs
 DeviceAddress sensorDeviceAddress; //Vérifie la compatibilité des capteurs avec la librairie
 
