@@ -1,69 +1,35 @@
+//Utilisation dela librairie Bounces 2 de Tomas Fredericks
+//https://github.com/thomasfredericks/Bounce2
+#include <Bounce2.h>
+
 #include <Keyboard.h>
 #include <Mouse.h>
 
-// set pin numbers for the five buttons:
-const int upButton = 2;    
-const int downButton = 3;        
-const int leftButton = 4;
-const int rightButton = 5;
-const int mouseButton = 6;
- 
+#define NUM_BUTTONS 2
+const uint8_t BUTTON_PINS[NUM_BUTTONS] = {6, 2};
+//Attention, c est querty, voir dans la doc de la lib Keyboard pour passer en azerty ou alors faire la correspondance.
+const char BUTTON_LETTER[NUM_BUTTONS] = {'q','b'};
+
+Bounce * buttons = new Bounce[NUM_BUTTONS];
+
 void setup() { // initialize the buttons' inputs:
-  pinMode(upButton, INPUT);      
-  pinMode(downButton, INPUT);      
-  pinMode(leftButton, INPUT);      
-  pinMode(rightButton, INPUT);      
-  pinMode(mouseButton, INPUT);
- 
+  
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+      buttons[i].attach( BUTTON_PINS[i] , INPUT);       //setup the bounce instance for the current button
+      buttons[i].interval(25);              // interval in ms
+    }
+
   Serial.begin(9600);
-  // initialize mouse control:
-  Mouse.begin();
   Keyboard.begin();
 }
  
 void loop() {
-  // use serial input to control the mouse:
-  if (Serial.available() > 0) {
-    char inChar = Serial.read();
- 
-    switch (inChar) {  
-    case 'u':
-      // move mouse up
-      Mouse.move(0, -40);
-      break;
-    case 'd':
-      // move mouse down
-      Mouse.move(0, 40);
-      break;
-    case 'l':
-      // move mouse left
-      Mouse.move(-40, 0);
-      break;
-    case 'r':
-      // move mouse right
-      Mouse.move(40, 0);
-      break;
-    case 'm':
-      // perform mouse left click
-      Mouse.click(MOUSE_LEFT);
-      break;
+  for (int i = 0; i < NUM_BUTTONS; i++)  {
+    // Update the Bounce instance :
+    buttons[i].update();
+    // If it fell, flag the need to toggle the LED
+    if ( buttons[i].fell() ) {
+      Keyboard.write(BUTTON_LETTER[i]);
     }
-  }
- 
-  // use the pushbuttons to control the keyboard:
-  if (digitalRead(upButton) == HIGH) {
-    Keyboard.write('u');
-  }
-  if (digitalRead(downButton) == HIGH) {
-    Keyboard.write('d');
-  }
-  if (digitalRead(leftButton) == HIGH) {
-    Keyboard.write('l');
-  }
-  if (digitalRead(rightButton) == HIGH) {
-    Keyboard.write('r');
-  }
-  if (digitalRead(mouseButton) == HIGH) {
-    Keyboard.write('m');
   }
 }
