@@ -27,20 +27,24 @@
 //Positionnement du debounceDelay
 #define DEBOUNCE_DELAIS 250
 Mux mux1;
-
+Mux mux2;
+//Ajoute des logs SERIAL si true
 boolean debug = false;
 //PIN possible sur ATMEGA32U4 : 21,20,19,18,15,14,16,10,9,8,7,6,5,4,1,0
 
 //Mapping entre index du bouton (0 à 15) et valeur qui sera tapée sur le clavier
 const String BUTTON_LETTER_MUX1[16] = {"azertyfonctionne", "AZERTYUIOP maj egalement", "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "0123456789", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p"};
-//
+const String BUTTON_LETTER_MUX2[16] = {"2azertyfonctionne", "2AZERTYUIOP maj egalement", "2abcdefghijklmnopqrstuvwxyz", "2ABCDEFGHIJKLMNOPQRSTUVWXYZ", "20123456789", "2f", "2g", "2h", "2i", "2j", "2k", "2l", "2m", "2n", "2o", "2p"};
+//Structure pour stocker le debounce sur un bouton
 ButtonDebounce b1  = ButtonDebounce(DEBOUNCE_DELAIS);
 ButtonDebounce BUTTON_BUDOUNCE_MUX1[16] = {b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1};
+ButtonDebounce BUTTON_BUDOUNCE_MUX2[16] = {b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1, b1};
 int counter = 0;
 
 void setup() { // initialize the buttons' inputs:
 
   mux1.setup(9, 8, 7, 6, A6); // initialise on setup. La PIN en dernière possition est celle de lecture de la valeur
+  mux2.setup(21, 20, 19, 18, A10); // initialise on setup. La PIN en dernière possition est celle de lecture de la valeur
 
   Serial.begin(9600);
   KeyboardAzertyFr.begin();
@@ -48,15 +52,27 @@ void setup() { // initialize the buttons' inputs:
 
 void loop() {
   for (int i = 0; i < 16; i++)  {
+    //MUX 1
     //On update la valeur interne du bouton i en gerant le debounce
     BUTTON_BUDOUNCE_MUX1[i].update(mux1.read(i));
     if (BUTTON_BUDOUNCE_MUX1[i].state() == HIGH) {
       if (debug) {
-        Serial.print("Clicked, bouton ");
+        Serial.print("Clicked MUX 1, bouton ");
         Serial.println(i);
       }
       KeyboardAzertyFr.print(BUTTON_LETTER_MUX1[i]);
     }
+    //MUX 2
+    //On update la valeur interne du bouton i en gerant le debounce
+    BUTTON_BUDOUNCE_MUX2[i].update(mux2.read(i));
+    if (BUTTON_BUDOUNCE_MUX2[i].state() == HIGH) {
+      if (debug) {
+        Serial.print("Clicked MUX 2, bouton ");
+        Serial.println(i);
+      }
+      KeyboardAzertyFr.print(BUTTON_LETTER_MUX2[i]);
+    }
+
     delay(10);
   }
 }
