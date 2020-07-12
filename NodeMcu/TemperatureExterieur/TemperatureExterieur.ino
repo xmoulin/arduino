@@ -7,14 +7,19 @@
     - OTA
     - Change capteur de DHT22 à BME280
     - Ajout capteur de pluie
+
+    17/07/2020
+    - Ajout d'une sonde de temperature DS18B20 pour se décaler du mur
 */
 #include <ESP8266WiFi.h>
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+//#include <Wire.h>
+//#include <SPI.h>
+//#include <Adafruit_Sensor.h>
+//#include <Adafruit_BME280.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 /************************* WiFi Access Point *********************************/
 
@@ -38,11 +43,26 @@ WiFiClient client;
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
 Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
 
-Adafruit_BME280 bme; // I2C
+//Adafruit_BME280 bme; // I2C
 
 //30 minutes
 const int sleepSeconds = 60 * 30;
 //const int sleepSeconds = 10;
+
+//17/07/2020 - DS18B20
+//https://chewett.co.uk/blog/1412/using-the-ds18b20-temperature-sensor-with-a-wemos-d1-mini-esp8266/
+//Meme cablage
+#define ONE_WIRE_PIN D2
+OneWire oneWire(ONE_WIRE_PIN);
+DallasTemperature sensors(&oneWire);
+/*
+  ROM = 28 BE B2 20 5 0 0 83
+  Chip = DS18B20
+  Data = 1 AC 1 4B 46 7F FF 4 10 86  CRC=86
+  Temperature = 26.75 Celsius, 80.15 Fahrenheit
+  No more addresses.
+ */
+
 /****************************** Feeds ***************************************/
 
 // Setup a feed called 'sensorTopic' for publishing.
@@ -75,7 +95,7 @@ void setup() {
 
   Serial.println("WiFi connected");
   Serial.println("IP address: "); Serial.println(WiFi.localIP());
-  Serial.println(F("BME280 test"));
+ /* Serial.println(F("BME280 test"));
 
   bool status;
   // (you can also pass in a Wire library object like &Wire2)
@@ -83,7 +103,7 @@ void setup() {
   if (!status) {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
-  }
+  }*/
   delay(500);
 }
 
@@ -95,11 +115,20 @@ void loop() {
   // function definition further below.
   MQTT_connect();
 
-  float h = bme.readHumidity();
+  //float h = bme.readHumidity();
   // Read temperature as Celsius (the default)
-  float t = bme.readTemperature();
+    //float t = bme.readTemperature();
+  float sumTemp = 0;
+  for (int i = 1; i <= 5; i++) {
+    sensors.requestTemperatures();
+    sumTemp = sumTemp + sensors.getTempCByIndex(0);
+    delay(1000);
+  }
+  float t = sumTemp /5;
+  Serial.println(t);
+
   //Pressure
-  float p = bme.readPressure() / 100.0F;
+  //float p = bme.readPressure() / 100.0F;
 
   // Rain - read the sensor on analog A0:
   int sensorReading = analogRead(A0);
@@ -112,7 +141,8 @@ void loop() {
   //Surrement plus simple que de passer par un String pour finir en tableau mais bon..
   char dataChar[100];
   String data = "{\"temperature\":\"";
-  data = data + t + "\",\"humidity\":\"" + h + "\",\"pressure\":\"" + p + "\",\"rain\":\"" + rain + "\",\"t\":\"/sensors/ext\"}";
+  //data = data + t + "\",\"humidity\":\"" + h + "\",\"pressure\":\"" + p + "\",\"rain\":\"" + rain + "\",\"t\":\"/sensors/ext\"}";
+  data = data + t + "\",\"rain\":\"" + rain + "\",\"t\":\"/sensors/ext\"}";
   //{"temperature":"24.40","humidity":"69.30","co2"="1887"&"t":"/sensors/haut"}
 
   data.toCharArray(dataChar, 99);
