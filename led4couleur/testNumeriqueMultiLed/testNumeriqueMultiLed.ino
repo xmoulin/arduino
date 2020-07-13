@@ -1,57 +1,69 @@
 //Ordre de PIN : Rouge/Bleu
-int myPinsLed1[] = {D5, D7};
-int myPinsLed2[] = {D2, D4};
-int myPinsLed1Value[] = {HIGH,HIGH};
-
+int myPinsLedCo2[] = {D5, D7};
+int myPinsLedHumidity[] = {D2, D4};
+int myPinsLedCo2Value[] = {HIGH,HIGH};
+int myPinsLedHumidityValue[] = {HIGH,HIGH};
 void setup()
 {
   Serial.begin(115200);
 
   //Init des PIN out pour tous les PIN utilisés
   for (int i = 0; i< 2;i ++ ){
-    pinMode(myPinsLed1[i],OUTPUT);
-    pinMode(myPinsLed2[i],OUTPUT);
+    pinMode(myPinsLedCo2[i],OUTPUT);
+    pinMode(myPinsLedHumidity[i],OUTPUT);
   }
-  update();
+  updateLed();
   Serial.println("Init OK");
 }
 
 // This function updates the LED outputs.
-void update()
+void updateLed()
 {
   for (int i = 0; i<2; i++){
-    digitalWrite(myPinsLed1[i],myPinsLed1Value[i]);
-    digitalWrite(myPinsLed2[i],myPinsLed1Value[i]);
+    digitalWrite(myPinsLedCo2[i],myPinsLedCo2Value[i]);
+    digitalWrite(myPinsLedHumidity[i],myPinsLedHumidityValue[i]);
   }
 }
 
 void loop()
 {
   Serial.println("Rouge");
-  setColorToRed();
-  update();
+  setColorToRed(myPinsLedCo2Value);
+  updateLed();
   delay(5000);
   Serial.println("Violet");
-  setColorToPink();
-  update();
+  setColorToPink(myPinsLedCo2Value);
+  updateLed();
   delay(5000);
   Serial.println("Bleu");
-  setColorToBlue();
-  update();
+  setColorToBlue(myPinsLedCo2Value);
+  updateLed();
+  delay(5000);
+  Serial.println("Rouge Humidity");
+  setColorToRed(myPinsLedHumidityValue);
+  updateLed();
+  delay(5000);
+  Serial.println("Violet Humidity");
+  setColorToPink(myPinsLedHumidityValue);
+  updateLed();
+  delay(5000);
+  Serial.println("Bleu Humidity");
+  setColorToBlue(myPinsLedHumidityValue);
+  updateLed();
   delay(5000);
 }
 
-void setColorToRed() {
-  myPinsLed1Value[0] = LOW;
-  myPinsLed1Value[1] = HIGH;
+void setColorToRed(int ledValue[]) {
+  ledValue[0] = LOW;
+  ledValue[1] = HIGH;
 }
 
-void setColorToBlue() {
-  myPinsLed1Value[0] = HIGH;
-  myPinsLed1Value[1] = LOW;
+void setColorToBlue(int ledValue[]) {
+  ledValue[0] = HIGH;
+  ledValue[1] = LOW;
 }
 
-void setColorToPink() {
-  myPinsLed1Value[0] = LOW;
-  myPinsLed1Value[1] = LOW;
+void setColorToPink(int ledValue[]) {
+  ledValue[0] = LOW;
+  ledValue[1] = LOW;
 }
