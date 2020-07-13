@@ -90,15 +90,3 @@ void loop()
   update();
   delay(5000);
 }
-
-void setColorToRed() {
-
-}
-
-void setColorToBlue() {
-  
-}
-
-void setColorToPink() {
-  
-}
