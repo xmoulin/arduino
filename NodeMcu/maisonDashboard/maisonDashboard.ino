@@ -6,13 +6,15 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <FastLED.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 //Conf de l'Objet
 #include "maisonDashboard_config.h"
 
 /************ RUBAN LED ******************/
 // How many leds are in the strip?
-#define NUM_LEDS 25
+#define NUM_LEDS 18
 // Data pin that led data will be written out over
 #define DATA_PIN 5
 // This is an array of leds.  One item for each led in your strip.
@@ -24,11 +26,6 @@ int myPinsLedCo2[] = {D5, D7};
 int myPinsLedHumidity[] = {D2, D4};
 int myPinsLedCo2Value[] = {HIGH,HIGH};
 int myPinsLedHumidityValue[] = {HIGH,HIGH};
-
-// Cloud state - Look at mapStateCloud to see the link between name and state
-int cloud_state = 2; // 0 : not connected,f 1 : pairing1 (green), 2 : pairing2 (green),  3: cloud connecting (clockwise blue), 4: cloud connected (blue), 5 : warning (blink red), 6 : cloud disconnecting (anti clockwise, red)
-//Running(4),Starting(3),Stopped(0),Stopping(6),Unknown(5),WhereAreYou(1),Init(2)
-String cloudStateAsString = "Init";
 bool color_set = LOW;
 
 ///Cloud Connecting
@@ -36,13 +33,8 @@ int led_nb_connecting = 0;
 unsigned long time_connecting = 0;
 int delay_connecting = 100; //in ms
 
-// Switch Pairing
+// ledRubanMaisonInit
 int led_nb_pairing1 = NUM_LEDS;
-int led_nb_pairing2 = NUM_LEDS;
-
-// Cloud warning
-unsigned long time_warning = 0;
-int delay_warning = 500; //in ms
 
 /************ MQTT - Global State (you don't need to change this!) ******************/
 // Create an ESP8266 WiFiClient class to connect to the MQTT server.
@@ -53,10 +45,6 @@ WiFiClient wifiClient;
 //new lib MQTT (Exit Adafruit from this commit : 16/06/2020)
 PubSubClient client(wifiClient);
 const char* mqtt_server = MY_MQTT_SERVER;
-unsigned long lastMsg = 0;
-#define MSG_BUFFER_SIZE  (50)
-char msg[MSG_BUFFER_SIZE];
-int value = 0;
 
 /************ TEMP - Global value ******************/
 float tempSalon =0;
@@ -64,8 +52,8 @@ float tempHaut =0;
 float tempExt =0;
 int co2 = 0;
 boolean isSystemeInitialise = false; // Une fois qu'on a reçu 3 valeurs salon, haut, ext, on  peut dire que le systeme est initialisé. On pourrait faire des topics persistent MQTT, mais abonnement qu a un topic global...
-String etatMaison = "Starting";
-int testFlag =0;
+String etatMaison = "Init";
+
 /*************************** Sketch Code ************************************/
 void setup() {
   Serial.begin(115200);
@@ -105,6 +93,11 @@ void setup() {
     pinMode(myPinsLedHumidity[i],OUTPUT);
   }
   updateLed();
+
+  ArduinoOTA.setHostname("mainsonDashboard"); // on donne une petit nom a notre module
+  ArduinoOTA.begin(); // initialisation de l'OTA
+  Serial.println("Setup OK");
+
 }
 
 void reconnect() {
@@ -134,8 +127,8 @@ void loop() {
     reconnect();
   }
   client.loop();
-
   ledManagement();
+  ArduinoOTA.handle(); 
 }
 
 /**********************************************/
@@ -237,7 +230,7 @@ void ledHumidityManagement(float humidity) {
 //Pour autant, comme on debranche pas le system, on devrait pas souvent rentrer dans le cas du non init.
 void manageSystemInitialisation() {
   //Systeme initialisé?
-  if (tempSalon != 0 && tempHaut != 0 && tempExt != 0 ) {
+  if (tempHaut != 0 && tempExt != 0 ) {
     isSystemeInitialise = true;
     Serial.println("****** Systeme INITIALISE ****** ");
   } 
@@ -266,7 +259,6 @@ void updateLed()
     digitalWrite(myPinsLedHumidity[i],myPinsLedHumidityValue[i]);
   }
 }
-
 
 void setColorToRed(int ledValue[]) {
   ledValue[0] = LOW;
@@ -314,101 +306,40 @@ void updateLedRuban() {
 }
 
 void ledManagement() {
-
-  //Running(4),Starting(3),Stopped(0),Stopping(6),Unknown(5),WhereAreYou(1),Init(2)
   if (etatMaison.equals("TresFrais")) {
-    Cloud_not_connected();
+    ledRubanMaisonFrais();
   }
   else if (etatMaison.equals("Frais")) {
-    Switch_pairing();
+    Fire2012();    
   }
   else if (etatMaison.equals("Pareil")) {
-    pacifica_loop();
+    ledRubanMaisonNeutre();
   }
   else if (etatMaison.equals("Chaud")) {
-    Cloud_connecting();
+    pacifica_loop();
   }
   else if (etatMaison.equals("TresChaud")) {
-    Cloud_warning();
+    ledRubanMaisonChaud();
   }
   else { //Init
-    Switch_pairing2();
+    ledRubanMaisonInit();
   }
 }
 
-
-
-void Cloud_connecting() {
-  if (time_connecting + delay_connecting < millis()) {
-    //Serial.println("*-*-*-* LED - Cloud_connecting");
-    led_nb_connecting = mod(led_nb_connecting + 1, NUM_LEDS);
-
-    leds[led_nb_connecting] = CRGB::Blue;
-    leds[mod(led_nb_connecting - 2 , NUM_LEDS)] = CRGB::Black;
-    // Show the leds
-    FastLED.show();
-    time_connecting = millis();
-  }
-}
-
-void Cloud_disconnecting() {
-  if (time_connecting + delay_connecting < millis()) {
-    //Serial.println("*-*-*-* LED - Cloud_disconnecting");
-    led_nb_connecting = mod(led_nb_connecting - 1, NUM_LEDS);
-
-    leds[led_nb_connecting] = CRGB::Green;
-    leds[mod(led_nb_connecting + 2 , NUM_LEDS)] = CRGB::Black;
-    // Show the leds
-    FastLED.show();
-    time_connecting = millis();
-  }
-}
-
-void Switch_pairing() {
-  if (time_connecting + delay_connecting< millis()){    
-  //    Serial.println("*-*-*-* LED - Switch_pairing");
-      
-      //leds[led_nb_pairing1] = CRGB::Green;
-      //leds[mod(led_nb_pairing1 - 2 , NUM_LEDS)] = CRGB::Black;
-      //led_nb_pairing1 = mod(led_nb_pairing1 + 1, NUM_LEDS);
-      
-      //leds[led_nb_pairing2] = CRGB::Green;
-      //leds[mod(led_nb_pairing2 + 2 , NUM_LEDS)] = CRGB::Black;
-      //led_nb_pairing2 = mod(led_nb_pairing2 - 1, NUM_LEDS);
-      if (led_nb_pairing1 < NUM_LEDS/2){
-        leds[led_nb_pairing1 % NUM_LEDS] = CRGB::Black;
-        leds[(8-led_nb_pairing1) % NUM_LEDS] = CRGB::Black;
-      }
-      if (led_nb_pairing1 == NUM_LEDS-1){
-        leds[led_nb_pairing1 % NUM_LEDS] = CRGB::Black;
-      }
-      if (led_nb_pairing1 > 0){
-        leds[mod(led_nb_pairing1 - 2 , NUM_LEDS)] = CRGB::Green;
-        leds[mod(8-led_nb_pairing1 + 2 , NUM_LEDS)] = CRGB::Green;
-      }
-      led_nb_pairing1 = mod(led_nb_pairing1 + 1, NUM_LEDS);
-
-      
-      // Show the leds
-      FastLED.show();
-      time_connecting = millis();
-    }
-}
-
-void Switch_pairing2() {
+void ledRubanMaisonInit() {
   if (time_connecting + delay_connecting< millis()){      
-      //Serial.println("*-*-*-* LED - Switch_pairing2");
+      //Serial.println("*-*-*-* LED - ledRubanMaisonInit");
 
       if (led_nb_pairing1 < NUM_LEDS/2){
         leds[led_nb_pairing1 % NUM_LEDS] = CRGB::Green;
-        leds[(8-led_nb_pairing1) % NUM_LEDS] = CRGB::Green;
+        leds[(NUM_LEDS-led_nb_pairing1) % NUM_LEDS] = CRGB::Green;
       }
       if (led_nb_pairing1 == NUM_LEDS-1){
         leds[led_nb_pairing1 % NUM_LEDS] = CRGB::Green;
       }
       if (led_nb_pairing1 > 0){
         leds[mod(led_nb_pairing1 - 2 , NUM_LEDS)] = CRGB::Black;
-        leds[mod(8-led_nb_pairing1 + 2 , NUM_LEDS)] = CRGB::Black;
+        leds[mod(NUM_LEDS-led_nb_pairing1 + 2 , NUM_LEDS)] = CRGB::Black;
       }
       led_nb_pairing1 = mod(led_nb_pairing1 + 1, NUM_LEDS);
       
@@ -418,10 +349,9 @@ void Switch_pairing2() {
     }
 }
 
-
-void Cloud_not_connected() {
+void ledRubanMaisonNeutre() {
   if (!color_set) {
-    Serial.println("*-*-*-* LED - Cloud_not_connected");
+    Serial.println("*-*-*-* LED - ledRubanMaisonNeutre");
     for (int i = 0; i < NUM_LEDS; i ++ )
     {
       leds[i] = CRGB::Black;
@@ -431,9 +361,9 @@ void Cloud_not_connected() {
   }
 }
 
-void Cloud_connected() {
+void ledRubanMaisonChaud() {
   if (!color_set) {
-    Serial.println("*-*-*-* LED - Cloud_connected");
+    Serial.println("*-*-*-* LED - ledRubanMaisonChaud");
     for (int i = 0; i < NUM_LEDS; i ++ )
     {
       leds[i] = CRGB::Blue;
@@ -443,30 +373,26 @@ void Cloud_connected() {
   }
 }
 
-void Cloud_warning() {
-  if (time_warning + delay_warning < millis()) {
+void ledRubanMaisonFrais() {
+  if (!color_set) {
+    Serial.println("*-*-*-* LED - ledRubanMaisonFrais");
     for (int i = 0; i < NUM_LEDS; i ++ )
     {
       leds[i] = CRGB::Red;
     }
+    FastLED.show();
+    color_set = HIGH;
   }
-  else {
-    for (int i = 0; i < NUM_LEDS; i ++ )
-    {
-      leds[i] = CRGB::Black;
-    }
-  }
-  if (time_warning + 2 * delay_warning < millis()) {
-    time_warning = millis();
-  }
-
-  FastLED.show();
 }
 
 int mod( int x, int y ) {
   return x < 0 ? ((x + 1) % y) + y - 1 : x % y;
 }
 
+///////////////////
+//// PACIFIQUE ////
+///////////////////
+ 
 CRGBPalette16 pacifica_palette_1 = 
     { 0x000507, 0x000409, 0x00030B, 0x00030D, 0x000210, 0x000212, 0x000114, 0x000117, 
       0x000019, 0x00001C, 0x000026, 0x000031, 0x00003B, 0x000046, 0x14554B, 0x28AA50 };
@@ -476,7 +402,6 @@ CRGBPalette16 pacifica_palette_2 =
 CRGBPalette16 pacifica_palette_3 = 
     { 0x000208, 0x00030E, 0x000514, 0x00061A, 0x000820, 0x000927, 0x000B2D, 0x000C33, 
       0x000E39, 0x001040, 0x001450, 0x001860, 0x001C70, 0x002080, 0x1040BF, 0x2060FF };
-
 
 void pacifica_loop()
 {
@@ -562,5 +487,59 @@ void pacifica_deepen_colors()
     leds[i].blue = scale8( leds[i].blue,  145); 
     leds[i].green= scale8( leds[i].green, 200); 
     leds[i] |= CRGB( 2, 5, 7);
+  }
+}
+
+/////////////
+/// FIRE ////
+/////////////
+
+// COOLING: How much does the air cool as it rises?
+// Less cooling = taller flames.  More cooling = shorter flames.
+// Default 50, suggested range 20-100 
+#define COOLING  55
+
+// SPARKING: What chance (out of 255) is there that a new spark will be lit?
+// Higher chance = more roaring fire.  Lower chance = more flickery fire.
+// Default 120, suggested range 50-200.
+#define SPARKING 100
+
+void Fire2012()
+{
+  if (time_connecting + delay_connecting < millis()) {
+    // Array of temperature readings at each simulation cell
+    static byte heat[NUM_LEDS];
+  
+    // Step 1.  Cool down every cell a little
+    for( int i = 0; i < NUM_LEDS; i++) {
+      heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / NUM_LEDS) + 2));
+    }
+  
+    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+    for( int k= NUM_LEDS - 1; k >= 2; k--) {
+      heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
+    }
+    
+    // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
+    if( random8() < SPARKING ) {
+      int y = random8(7);
+      heat[y] = qadd8( heat[y], random8(160,255) );
+    }
+
+    // Step 4.  Map from heat cells to LED colors
+    for( int j = 0; j < NUM_LEDS; j++) {
+      CRGB color = HeatColor( heat[j]);
+      int pixelnumber;
+      //if( gReverseDirection ) {
+      //  pixelnumber = (NUM_LEDS-1) - j;
+      //} else {
+        pixelnumber = j;
+      //}
+      leds[pixelnumber] = color;
+    }
+
+    // Show the leds
+    FastLED.show();
+    time_connecting = millis();
   }
 }
