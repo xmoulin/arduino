@@ -15,7 +15,8 @@
 #define MY_MQTT_USERNAME    ""
 #define MY_MQTT_KEY         ""
 
-#define SENSORS_TOPIC_ALL_SUB       "/test123/#"
+//#define SENSORS_TOPIC_ALL_SUB       "/test123/#"
+#define SENSORS_TOPIC_ALL_SUB       "/sensors/#"
 #define SENSORS_TOPIC_HAUT_SUB       "/sensors/haut"
 #define SENSORS_TOPIC_SALON_SUB       "/sensors/salon"
 #define SENSORS_TOPIC_EXT_SUB       "/sensors/ext"
