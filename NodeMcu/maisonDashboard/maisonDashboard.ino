@@ -6,9 +6,6 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <FastLED.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
-
 //Conf de l'Objet
 #include "maisonDashboard_config.h"
 
@@ -52,7 +49,10 @@ float tempHaut =0;
 float tempExt =0;
 int co2 = 0;
 boolean isSystemeInitialise = false; // Une fois qu'on a reçu 3 valeurs salon, haut, ext, on  peut dire que le systeme est initialisé. On pourrait faire des topics persistent MQTT, mais abonnement qu a un topic global...
+//Etat utile au ruban de LED
 String etatMaison = "Init";
+//Mode de fonctionnement du dashboard : demo, start, stop
+String dashBoardMode = "start";
 
 /*************************** Sketch Code ************************************/
 void setup() {
@@ -93,9 +93,6 @@ void setup() {
     pinMode(myPinsLedHumidity[i],OUTPUT);
   }
   updateLed();
-
-  ArduinoOTA.setHostname("mainsonDashboard"); // on donne une petit nom a notre module
-  ArduinoOTA.begin(); // initialisation de l'OTA
   Serial.println("Setup OK");
 
 }
@@ -128,7 +125,6 @@ void loop() {
   }
   client.loop();
   ledManagement();
-  ArduinoOTA.handle(); 
 }
 
 /**********************************************/
@@ -159,9 +155,14 @@ void topiccallback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Humidity is: ");
   Serial.println(humidityAsString);
   feadANewHumidityValue(topic,humidityAsString);
-
+  
+  String modeAsString = root[String("mode")].as<String>();
+  Serial.print("mode is: ");
+  Serial.println(modeAsString);
+  feadANewModeValue(topic,modeAsString);
+  
   logAllValue();
-  manageSystemInitialisation();
+  manageSystemModeAndInitialisation();
   updateLed();
   updateLedRuban();
 }
@@ -202,11 +203,20 @@ void feadANewHumidityValue(char* topic, String humidityNew) {
  }
 }
 
+//Arrivée d'une nouvelle valeur mode d'utilisation
+void feadANewModeValue(char* topic, String modeNew) {
+ if(topic[9]=='m') {
+    dashBoardMode = modeNew;
+    Serial.print("mode: ");
+    Serial.println(modeNew);
+ }
+}
+
 void ledCO2Management(int co2) {
-   if (co2 > SEUIL_CO2_DANGER) {
+   if (co2 >= SEUIL_CO2_DANGER) {
     Serial.println("Seuil CO2 Danger");
     setColorToRed(myPinsLedCo2Value);
-  } else if (co2 > SEUIL_CO2_WARN) {
+  } else if (co2 >= SEUIL_CO2_WARN) {
     Serial.println("Seuil CO2 Warn");
     setColorToPink(myPinsLedCo2Value);
   } else {
@@ -215,10 +225,10 @@ void ledCO2Management(int co2) {
 }
 
 void ledHumidityManagement(float humidity) {
-   if (humidity > SEUIL_HUMIDITY_DANGER) {
+   if (humidity >= SEUIL_HUMIDITY_DANGER) {
     Serial.println("Seuil Humidity Danger");
     setColorToRed(myPinsLedHumidityValue);
-  } else if (humidity > SEUIL_HUMIDITY_WARN) {
+  } else if (humidity >= SEUIL_HUMIDITY_WARN) {
     Serial.println("Seuil Humidity Warn");
     setColorToPink(myPinsLedHumidityValue);
   } else {
@@ -228,12 +238,18 @@ void ledHumidityManagement(float humidity) {
 //pour verifier si on a reçu les données de toutes les sondes. A ce moment, on va pouvoir faire des comparaisons.
 //On pourrait fairee du retain sur les topics histoire de ne pas avoir a faire cela.
 //Pour autant, comme on debranche pas le system, on devrait pas souvent rentrer dans le cas du non init.
-void manageSystemInitialisation() {
+void manageSystemModeAndInitialisation() {
   //Systeme initialisé?
   if (tempHaut != 0 && tempExt != 0 ) {
     isSystemeInitialise = true;
     Serial.println("****** Systeme INITIALISE ****** ");
   } 
+  if (dashBoardMode.equals("stop")) {
+    etatMaison="Pareil";
+    setAllColorToBlack();
+  } else if (dashBoardMode.equals("demo")) {
+    runDemoScenario();
+  }
 }
 
 void logAllValue() {
@@ -243,8 +259,10 @@ void logAllValue() {
   Serial.print(tempHaut);
   Serial.print(",Temperature Exterieur: ");
   Serial.print(tempExt);
-  Serial.print("CO2 Haut: ");
-  Serial.println(tempSalon);
+  Serial.print(",CO2 Haut: ");
+  Serial.print(tempSalon);
+  Serial.print(",mode: ");
+  Serial.println(dashBoardMode);
 }
 
 /**********************************************/
@@ -253,11 +271,11 @@ void logAllValue() {
 
 // This function updates the LED outputs.
 void updateLed()
-{
-  for (int i = 0; i<2; i++){
-    digitalWrite(myPinsLedCo2[i],myPinsLedCo2Value[i]);
-    digitalWrite(myPinsLedHumidity[i],myPinsLedHumidityValue[i]);
-  }
+{ 
+    for (int i = 0; i<2; i++){
+      digitalWrite(myPinsLedCo2[i],myPinsLedCo2Value[i]);
+      digitalWrite(myPinsLedHumidity[i],myPinsLedHumidityValue[i]);
+    }
 }
 
 void setColorToRed(int ledValue[]) {
@@ -273,6 +291,67 @@ void setColorToBlue(int ledValue[]) {
 void setColorToPink(int ledValue[]) {
   ledValue[0] = LOW;
   ledValue[1] = LOW;
+}
+
+void setColorToBlack(int ledValue[]) {
+  ledValue[0] = HIGH;
+  ledValue[1] = HIGH;
+}
+
+void setAllColorToBlack() {
+    setColorToBlack(myPinsLedCo2Value);
+    setColorToBlack(myPinsLedHumidityValue);
+}
+/**********************************************/
+/**************** Demo ************************/
+/**********************************************/
+void runDemoScenario(){
+    Serial.println("---- DEMO START ----");
+    //Commence par les humidité et Co2
+    String previousEtatMaison = etatMaison;
+    etatMaison="Pareil";
+    privateRunDemoLed(100);
+    setAllColorToBlack();
+    updateLed();
+    delay(2000);
+    ledHumidityManagement(SEUIL_HUMIDITY_WARN);
+    updateLed();
+    delay(2000);
+    ledHumidityManagement(SEUIL_HUMIDITY_DANGER);
+    updateLed();
+    delay(2000);
+    setAllColorToBlack();
+    ledCO2Management(SEUIL_CO2_WARN);
+    updateLed();
+    delay(2000);
+    ledCO2Management(SEUIL_CO2_DANGER);
+    updateLed();
+    delay(2000);
+    setAllColorToBlack();
+    updateLed();
+    //Gestion de la barre de LED
+    etatMaison="TresChaud";
+    privateRunDemoLed(5000);
+    etatMaison="Chaud";
+    privateRunDemoLed(5000);
+    etatMaison="Pareil";
+    privateRunDemoLed(5000);
+    etatMaison="Frais";
+    privateRunDemoLed(5000);
+    etatMaison="TresFrais";
+    privateRunDemoLed(5000);
+    etatMaison=previousEtatMaison;
+    dashBoardMode="start";
+    Serial.println("---- DEMO STOP ----");
+}
+//Gere le ruban de LED, passe en parametre le temps que doit durer la demo
+void privateRunDemoLed(int demoDuration){
+      unsigned long demoStartTime = millis();
+      color_set = LOW;
+      while(millis()- demoStartTime <= demoDuration) {
+        ledManagement();
+        delay(10);
+      }
 }
 
 /**********************************************/

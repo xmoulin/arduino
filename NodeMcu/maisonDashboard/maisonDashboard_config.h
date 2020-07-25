@@ -24,8 +24,8 @@
 /**
  * REFERENCE SETUP
  */
-#define SEUIL_CO2_WARN       700
-#define SEUIL_CO2_DANGER     900
+#define SEUIL_CO2_WARN       900
+#define SEUIL_CO2_DANGER     1100
 
 #define SEUIL_HUMIDITY_WARN       65
 #define SEUIL_HUMIDITY_DANGER     75
