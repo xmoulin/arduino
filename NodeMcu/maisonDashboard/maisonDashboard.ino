@@ -162,9 +162,11 @@ void topiccallback(char* topic, byte* payload, unsigned int length) {
   feadANewModeValue(topic,modeAsString);
   
   logAllValue();
-  manageSystemModeAndInitialisation();
+  manageSystemInitialisation();
   updateLed();
   updateLedRuban();
+  //Apres avoir positionner les etat, si on est en stop, il faut les surcharger
+  manageSystemMode();
 }
 
 
@@ -238,12 +240,16 @@ void ledHumidityManagement(float humidity) {
 //pour verifier si on a reçu les données de toutes les sondes. A ce moment, on va pouvoir faire des comparaisons.
 //On pourrait fairee du retain sur les topics histoire de ne pas avoir a faire cela.
 //Pour autant, comme on debranche pas le system, on devrait pas souvent rentrer dans le cas du non init.
-void manageSystemModeAndInitialisation() {
+void manageSystemInitialisation() {
   //Systeme initialisé?
   if (tempHaut != 0 && tempExt != 0 ) {
     isSystemeInitialise = true;
     Serial.println("****** Systeme INITIALISE ****** ");
   } 
+}
+
+//Si on est en mode stop ou demo, on fait des trucs particuliers
+void manageSystemMode() {
   if (dashBoardMode.equals("stop")) {
     etatMaison="Pareil";
     setAllColorToBlack();
@@ -251,7 +257,6 @@ void manageSystemModeAndInitialisation() {
     runDemoScenario();
   }
 }
-
 void logAllValue() {
   Serial.print("Temperature Salon: ");
   Serial.print(tempSalon);
