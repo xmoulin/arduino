@@ -48,6 +48,7 @@ float tempSalon =0;
 float tempHaut =0;
 float tempExt =0;
 int co2 = 0;
+float humidity = 0;
 boolean isSystemeInitialise = false; // Une fois qu'on a reçu 3 valeurs salon, haut, ext, on  peut dire que le systeme est initialisé. On pourrait faire des topics persistent MQTT, mais abonnement qu a un topic global...
 //Etat utile au ruban de LED
 String etatMaison = "Init";
@@ -163,9 +164,14 @@ void topiccallback(char* topic, byte* payload, unsigned int length) {
   
   logAllValue();
   manageSystemInitialisation();
+  
+  //On update humidity et co2 ici et non pas dans feadANewHumidityValue
+  //car aisni, en sortie d'un start ou stop, on peut repositionner les lumieres directement, sans attendre de nouvelles valeurs de la sonde 'haut'.
+  ledHumidityManagement(humidity);
+  ledCO2Management(co2);
   updateLed();
   updateLedRuban();
-  //Apres avoir positionner les etat, si on est en stop, il faut les surcharger
+  //Apres avoir positionner les etats, si on est en stop, il faut les surcharger
   manageSystemMode();
 }
 
@@ -191,17 +197,15 @@ void feadANewCO2Value(char* topic, String co2New) {
     co2=co2New.toInt();
     Serial.print("CO2 Haut: ");
     Serial.println(co2);
-    ledCO2Management(co2);
   } 
 }
 
 //Arrivée d'une nouvelle valeur d'humidité
 void feadANewHumidityValue(char* topic, String humidityNew) {
  if(topic[9]=='h') {
-    float humidity=humidityNew.toFloat();
+    humidity=humidityNew.toFloat();
     Serial.print("Humidité Haut: ");
     Serial.println(humidity);
-    ledHumidityManagement(humidity);
  }
 }
 
@@ -253,6 +257,7 @@ void manageSystemMode() {
   if (dashBoardMode.equals("stop")) {
     etatMaison="Pareil";
     setAllColorToBlack();
+    updateLed();
   } else if (dashBoardMode.equals("demo")) {
     runDemoScenario();
   }
@@ -265,7 +270,9 @@ void logAllValue() {
   Serial.print(",Temperature Exterieur: ");
   Serial.print(tempExt);
   Serial.print(",CO2 Haut: ");
-  Serial.print(tempSalon);
+  Serial.print(co2);
+  Serial.print(",Humidity Haut: ");
+  Serial.print(humidity);
   Serial.print(",mode: ");
   Serial.println(dashBoardMode);
 }
@@ -304,8 +311,8 @@ void setColorToBlack(int ledValue[]) {
 }
 
 void setAllColorToBlack() {
-    setColorToBlack(myPinsLedCo2Value);
-    setColorToBlack(myPinsLedHumidityValue);
+ setColorToBlack(myPinsLedCo2Value);
+ setColorToBlack(myPinsLedHumidityValue);
 }
 /**********************************************/
 /**************** Demo ************************/
@@ -314,6 +321,8 @@ void runDemoScenario(){
     Serial.println("---- DEMO START ----");
     //Commence par les humidité et Co2
     String previousEtatMaison = etatMaison;
+    float previousHumidity = humidity;
+    int previousCo2 = co2;
     etatMaison="Pareil";
     privateRunDemoLed(100);
     setAllColorToBlack();
@@ -346,6 +355,9 @@ void runDemoScenario(){
     etatMaison="TresFrais";
     privateRunDemoLed(5000);
     etatMaison=previousEtatMaison;
+    humidity = previousHumidity;
+    co2 = previousCo2;
+    updateLed();
     dashBoardMode="start";
     Serial.println("---- DEMO STOP ----");
 }
