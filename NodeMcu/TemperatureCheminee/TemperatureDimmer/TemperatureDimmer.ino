@@ -49,6 +49,12 @@
  *  | BluePill      |                         |                         |
  *  | Etc...        |                         |                         |
  *  +---------------+-------------------------+-------------------------+
+ *  
+ *  Over ESP8266: https://github.com/RobotDynOfficial/RBDDimmer/issues/14#issuecomment-787099602
+ *  This works on Node MCU 1.0. All you have to do is to add "ICACHE_RAM_ATTR" in between the "void isr_ext()" RBDmcuESP8266.cpp file.
+ *  Like this:
+ *  void ICACHE_RAM_ATTR isr_ext()
+ *  
  */
 
 #include <RBDdimmer.h>
